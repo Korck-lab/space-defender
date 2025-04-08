@@ -234,3 +234,5 @@ const GAME_CONFIG = {
   // UI
   levelUpMessageDuration: 2000,
 };
+
+

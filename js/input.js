@@ -121,3 +121,4 @@ class InputHandler {
 
 // Export class if using modules
 // export { InputHandler };
+

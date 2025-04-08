@@ -20,12 +20,11 @@
 
     <!-- In-Game HUD -->
     <div id="gameUI">
-      <!-- Left Section -->
+      <!-- ... hud content ... -->
       <div class="ui-section">
         <div>Score: <span id="score">0</span></div>
         <div>Lives: <span id="lives">3</span></div>
       </div>
-      <!-- Right Section -->
       <div class="ui-section">
         <div>Level: <span id="level">1</span></div>
         <div>Bullet Lvl: <span id="bulletPower">1/5</span></div>
@@ -70,13 +69,13 @@
         <div class="ability-cooldown"></div>
       </div>
     </div>
-    <!-- Unlock Bar Below Abilities -->
     <div id="unlockBarContainer">
       <div id="unlockBarFill"></div>
     </div>
 
     <!-- Start Screen -->
     <div id="startScreen" class="screen">
+      <!-- ... screen content ... -->
       <h1>SPACE DEFENDER</h1>
       <h2>High Scores</h2>
       <ul id="highScoresList">
@@ -105,6 +104,7 @@
 
     <!-- Game Over Screen -->
     <div id="gameOverScreen" class="screen hidden">
+      <!-- ... screen content ... -->
       <h1>MISSION FAILED</h1>
       <p>Final Score: <span id="finalScore">0</span></p>
       <p>Max Bullet Lvl Reached: <span id="finalPower">1/5</span></p>
@@ -115,6 +115,7 @@
 
     <!-- Pause Screen -->
     <div id="pauseScreen" class="screen hidden">
+      <!-- ... screen content ... -->
       <h1>GAME PAUSED</h1>
       <p>Current score: <span id="pauseScore">0</span></p>
       <button id="resumeButton">RESUME</button>
@@ -125,20 +126,15 @@
     <div class="ability-duration-timer" id="wingmanTimer">Wingmen: 10s</div>
     <div class="ability-duration-timer" id="miniShipTimer">Mini Ships: 10s</div>
 
-    <!-- JavaScript Files (Order Matters!) -->
+    <!-- JavaScript Files -->
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/drawing.js"></script>
-    <script src="js/audio.js"></script>
-    <!-- Audio Manager -->
     <script src="js/entities.js"></script>
-    <!-- Entities & ParticleManager -->
     <script src="js/ui.js"></script>
     <script src="js/abilities.js"></script>
-    <!-- Ability Manager -->
     <script src="js/input.js"></script>
     <script src="js/game.js"></script>
-    <!-- Main Game Logic -->
 
     <!-- Initialization -->
     <script>
@@ -148,50 +144,27 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // Create the game instance (which includes AudioManager)
         const game = new Game(canvas, ctx);
 
-        // Function to handle starting the game after initializing audio
-        const startGameWithAudio = () => {
-          // Init audio context on first interaction if not already done
-          if (!game.audioManager.isInitialized) {
-            game.audioManager.initAudioContext();
-          }
-          // Ensure context is running if previously suspended
-          if (
-            game.audioManager.audioContext &&
-            game.audioManager.audioContext.state === "suspended"
-          ) {
-            game.audioManager.audioContext.resume();
-          }
-          game.start(); // Start the actual game
-        };
-
-        // Attach the combined audio init + game start to buttons
         document
           .getElementById("startButton")
-          .addEventListener("click", startGameWithAudio);
+          .addEventListener("click", () => game.start());
         document
           .getElementById("restartButton")
-          .addEventListener("click", startGameWithAudio);
+          .addEventListener("click", () => game.start());
         document
           .getElementById("restartButton2")
-          .addEventListener("click", startGameWithAudio);
-
-        // Pause/Resume listener (handles audio context suspend/resume)
+          .addEventListener("click", () => game.start());
         document
           .getElementById("resumeButton")
           .addEventListener("click", () => game.togglePause());
 
-        // High Score Display Setup
         game.uiManager.highScoresListElementGameOver = document.getElementById(
           "highScoresListGameOver"
         );
-        // Override the display function to update both lists
         game.uiManager.displayHighScores = function (scores) {
           const displayList = (listElement) => {
             if (!listElement) {
-              console.warn("High score list element not found"); // Added warning
               return;
             }
             listElement.innerHTML = "";
@@ -199,8 +172,7 @@
               listElement.innerHTML = "<li>No scores yet!</li>";
               return;
             }
-            // Limit to top 5 for display consistency if needed
-            scores.slice(0, 5).forEach((score, index) => {
+            scores.forEach((score, index) => {
               const li = document.createElement("li");
               li.innerHTML = `<span>#${index + 1}</span><span>${score}</span>`;
               listElement.appendChild(li);
@@ -210,10 +182,8 @@
           displayList(this.highScoresListElementGameOver);
         };
 
-        // Initial setup for start screen
         game.uiManager.showStartScreen(game.highScores);
 
-        // Prevent context menu and touch scrolling
         canvas.addEventListener("contextmenu", (e) => e.preventDefault());
         document.body.addEventListener(
           "touchmove",
@@ -223,16 +193,10 @@
           { passive: false }
         );
 
-        // Handle window resize
-        // Debounce resize handler slightly
-        let resizeTimeout;
-        window.addEventListener("resize", () => {
-          clearTimeout(resizeTimeout);
-          resizeTimeout = setTimeout(() => game.handleResize(), 100);
-        });
-
-        console.log("Game Evolved Ready with Audio.");
+        console.log("Game Evolved Ready.");
       });
     </script>
   </body>
 </html>
+
+

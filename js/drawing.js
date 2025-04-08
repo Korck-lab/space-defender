@@ -250,3 +250,5 @@ function drawItem(ctx, item) {
     drawText(ctx, icon, item.x + item.width / 2, item.y + item.height / 2, 'black', cfg.size * 0.7);
 
 }
+
+

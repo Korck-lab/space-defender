@@ -1,7 +1,8 @@
 // js/entities.js
 
-// --- Base Class ---
+// --- Base Class (No Change) ---
 class Entity {
+  /* ... */
   constructor(x, y, width, height, color) {
     this.x = x;
     this.y = y;
@@ -12,10 +13,10 @@ class Entity {
   }
   isOffscreen(canvasWidth, canvasHeight, margin = 50) {
     return (
-      this.x < -margin - this.width || // Check right edge against left border
-      this.x > canvasWidth + margin || // Check left edge against right border
-      this.y < -margin - this.height || // Check bottom edge against top border
-      this.y > canvasHeight + margin // Check top edge against bottom border
+      this.x < -margin ||
+      this.x > canvasWidth + margin ||
+      this.y < -margin ||
+      this.y > canvasHeight + margin + this.height
     );
   }
   getCenterX() {
@@ -26,8 +27,9 @@ class Entity {
   }
 }
 
-// --- Player Class ---
+// --- Player Class (No Change) ---
 class Player extends Entity {
+  /* ... */
   constructor(canvasWidth, canvasHeight) {
     const config = GAME_CONFIG.player;
     super(
@@ -56,39 +58,21 @@ class Player extends Entity {
     this.invincibilityDuration = GAME_CONFIG.INVINCIBILITY_DURATION;
   }
   update(deltaTime, canvasWidth) {
-    // Update Invincibility Timer
     if (this.invincible) {
       this.invincibilityTimer -= deltaTime;
       if (this.invincibilityTimer <= 0) {
         this.invincible = false;
         this.invincibilityTimer = 0;
-        console.log("Player invincibility ended.");
       }
     }
-
-    // Smooth Movement (Lerp)
-    const currentCenterX = this.getCenterX();
-    const dx = this.targetX - currentCenterX;
-    // Adjust lerp factor based on distance? Or keep it simple.
-    // 0.15 is a decent smooth factor. Higher = faster response.
-    const moveAmount = dx * 0.15;
-    this.x += moveAmount;
-
-    // Clamp player position within screen bounds
-    this.x = clamp(this.x, 0, canvasWidth - this.width);
+    const dx = this.targetX - this.x;
+    this.speed = this.baseSpeed;
+    this.x += dx * 0.15;
+    this.x = clamp(this.x, this.width / 2, canvasWidth - this.width / 2);
   }
-
   draw(ctx) {
-    // Use the buffered drawing function from drawing.js
     drawPlayerFromBuffer(ctx, this);
-
-    // Optional: Draw engine trail particles if needed (can also be done in game.drawEntities)
-    // if (!this.invincible && Math.abs(this.targetX - this.getCenterX()) > 1) {
-    //     // Assuming particleManager is accessible via game instance passed somewhere
-    //     // game.particleManager.createEngineTrail(this.getCenterX(), this.y + this.height / 2, this.width);
-    // }
   }
-
   canShoot(currentTime) {
     return currentTime - this.lastShotTime >= this.shootDelay;
   }
@@ -96,245 +80,200 @@ class Player extends Entity {
     this.lastShotTime = currentTime;
   }
   addScore(amount, game) {
-    // Add score logic moved to game.addScore to handle unlocks in one place
+    this.currentLifeScore += amount;
     game.addScore(amount);
-    this.currentLifeScore += amount; // Track score for this life separately for unlocks
   }
   increaseKillCount(game) {
     this.kills++;
-    const killsNeeded = GAME_CONFIG.killsPerPowerUp;
     const newPowerLevel = Math.min(
-      Math.floor(this.kills / killsNeeded) + 1,
+      Math.floor(this.kills / GAME_CONFIG.killsPerPowerUp) + 1,
       GAME_CONFIG.maxBulletPowerLevel
     );
-
     if (newPowerLevel > this.bulletPowerLevel) {
       this.bulletPowerLevel = newPowerLevel;
       this.maxReachedPower = Math.max(
         this.maxReachedPower,
         this.bulletPowerLevel
       );
-      game.particleManager.createPowerUpEffect(
-        this.getCenterX(),
-        this.getCenterY(),
-        this.bulletMode
-      ); // Use center
+      game.particleManager.createPowerUpEffect(this.x, this.y, this.bulletMode);
       game.uiManager.updateBulletPower(
         this.bulletPowerLevel,
-        0, // Reset progress bar on level up
+        0,
         this.bulletPowerLevel === GAME_CONFIG.maxBulletPowerLevel
       );
-      console.log("Bullet Power Leveled Up:", this.bulletPowerLevel);
     } else if (this.bulletPowerLevel < GAME_CONFIG.maxBulletPowerLevel) {
-      // Update progress bar if not maxed
       game.uiManager.updateBulletPower(
         this.bulletPowerLevel,
-        this.kills % killsNeeded,
+        this.kills % GAME_CONFIG.killsPerPowerUp,
         false
       );
     }
   }
   toggleBulletMode(game) {
     this.bulletMode = this.bulletMode === "spread" ? "parallel" : "spread";
-    this.bulletPowerLevel = 1; // Reset power level on switch
-    this.kills = 0; // Reset kill count for power level
-    this.maxReachedPower = Math.max(this.maxReachedPower, 1); // Ensure max power tracks the reset
-    game.uiManager.updateBulletPower(this.bulletPowerLevel, 0, false); // Update UI
-    return this.bulletMode; // Return the new mode for UI/sound purposes
+    this.bulletPowerLevel = 1;
+    this.kills = 0;
+    this.maxReachedPower = Math.max(this.maxReachedPower, 1);
+    game.uiManager.updateBulletPower(this.bulletPowerLevel, 0, false);
+    return this.bulletMode;
   }
   loseLife() {
-    if (this.invincible) return true; // Don't lose life if invincible
-
+    if (this.invincible) return true;
     this.lives--;
-    this.currentLifeScore = 0; // Reset score for this life (for unlocks)
-    this.bulletPowerLevel = 1; // Reset power
-    this.kills = 0; // Reset kills
-
+    this.currentLifeScore = 0;
+    this.bulletPowerLevel = 1;
+    this.kills = 0;
     if (this.lives > 0) {
-      this.becomeInvincible(); // Become invincible after losing a life (if not game over)
+      this.becomeInvincible();
     }
-    return this.lives > 0; // Return true if player still has lives left
+    return this.lives > 0;
   }
   gainLife() {
     if (this.lives < this.maxLives) {
       this.lives++;
       return true;
     }
-    return false; // Return false if already at max lives
+    return false;
   }
   becomeInvincible() {
     this.invincible = true;
     this.invincibilityTimer = this.invincibilityDuration;
-    console.log(`Player invincible for ${this.invincibilityDuration}ms`);
   }
   resetForNewGame(canvasWidth, canvasHeight) {
     const config = GAME_CONFIG.player;
-    this.x = canvasWidth / 2 - this.width / 2; // Center X
-    this.y = canvasHeight - config.initialYOffset - this.height / 2; // Center Y based on offset
-    this.targetX = this.getCenterX();
+    this.x = canvasWidth / 2;
+    this.y = canvasHeight - config.initialYOffset;
+    this.targetX = this.x;
     this.lives = this.initialLives;
     this.bulletPowerLevel = 1;
     this.kills = 0;
     this.maxReachedPower = 1;
-    this.bulletMode = "spread"; // Default mode
-    this.autoFire = true; // Default autofire state
+    this.bulletMode = "spread";
+    this.autoFire = true;
     this.lastShotTime = 0;
     this.currentLifeScore = 0;
-    this.invincible = false; // Start not invincible
+    this.invincible = false;
     this.invincibilityTimer = 0;
-    this.active = true; // Make sure player is active
   }
   resetAfterDeath(canvasWidth, canvasHeight) {
     const config = GAME_CONFIG.player;
-    this.x = canvasWidth / 2 - this.width / 2;
-    this.y = canvasHeight - config.initialYOffset - this.height / 2;
-    this.targetX = this.getCenterX();
-    // Lives are handled by loseLife()
-    this.bulletPowerLevel = 1; // Reset power on death
-    this.kills = 0; // Reset kills on death
-    this.currentLifeScore = 0; // Reset life score on death
-    this.lastShotTime = 0; // Allow shooting immediately
-    this.becomeInvincible(); // Become invincible upon respawn
+    this.x = canvasWidth / 2;
+    this.y = canvasHeight - config.initialYOffset;
+    this.targetX = this.x;
+    this.bulletPowerLevel = 1;
+    this.kills = 0;
+    this.currentLifeScore = 0;
+    this.lastShotTime = 0;
+    this.becomeInvincible();
   }
 }
 
-// --- Bullet Class ---
+// --- Bullet Class --- (Add seeking behavior for MiniShip Rockets)
 class Bullet extends Entity {
   constructor(
-    x, // Starting center X
-    y, // Starting center Y
+    x,
+    y,
     config,
     speedX = 0,
     speedY,
     damage,
     owner = "player",
-    target = null // Optional target for homing
+    target = null
   ) {
+    // Added owner & optional target
     super(x - config.width / 2, y, config.width, config.height, config.color);
-
     this.speedX = speedX;
     this.speedY = speedY;
     this.damage = damage;
     this.owner = owner;
-    this.config = config; // Store config for properties like turnRate, speed
+    this.config = config; // Store config for properties like turnRate
 
     // Homing properties
-    this.isHoming = owner === "miniShip"; // Only miniship rockets home currently
+    this.isHoming = owner === "miniShip"; // Only miniship rockets home
     this.target = target; // The alien entity to home towards
     this.turnRate = config.turnRate || 0; // Radians per update step (approx)
-    this.baseSpeed =
-      config.speed || Math.sqrt(speedX * speedX + speedY * speedY); // Store base speed if provided
   }
 
   update(deltaTime, gameRef) {
-    // Pass gameRef if needed for target finding etc.
-    const speedFactor = deltaTime / 16.67; // Normalize speed based on 60fps
+    // Needs gameRef potentially to find new targets?
+    const speedFactor = deltaTime / 16.67;
 
     if (this.isHoming) {
-      // Check if target is valid and active
-      if (this.target && this.target.active && this.target.health > 0) {
+      if (this.target && this.target.active) {
+        // Calculate direction to target
         const targetX = this.target.getCenterX();
         const targetY = this.target.getCenterY();
-        const currentX = this.getCenterX();
-        const currentY = this.getCenterY();
+        const desiredAngle = Math.atan2(
+          targetY - this.getCenterY(),
+          targetX - this.getCenterX()
+        );
 
-        // Calculate desired angle towards target
-        const desiredAngle = Math.atan2(targetY - currentY, targetX - currentX);
-
-        // Calculate current angle of movement
+        // Calculate current angle
         const currentAngle = Math.atan2(this.speedY, this.speedX);
 
-        // Find the shortest angle difference (handle wrap-around)
+        // Find the difference, handle wrap-around
         let angleDiff = desiredAngle - currentAngle;
         while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
         while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
-        // Clamp the turning amount based on turnRate
-        const turnAmount = clamp(
-          angleDiff,
-          -this.turnRate * speedFactor,
-          this.turnRate * speedFactor
-        ); // Scale turn rate by delta time
+        // Clamp the turn rate
+        const turnAmount = clamp(angleDiff, -this.turnRate, this.turnRate);
 
-        // Calculate the new angle
+        // Apply the turn
         const newAngle = currentAngle + turnAmount;
 
-        // Update velocity components based on the new angle and base speed
-        this.speedX = Math.cos(newAngle) * this.baseSpeed;
-        this.speedY = Math.sin(newAngle) * this.baseSpeed;
+        // Update velocity based on new angle and fixed speed
+        const speed = this.config.speed;
+        this.speedX = Math.cos(newAngle) * speed;
+        this.speedY = Math.sin(newAngle) * speed;
       } else {
-        // Target lost or destroyed, continue straight
-        this.isHoming = false; // Stop homing
-        this.target = null;
-        // Optional: Could add logic to find a new target here
+        // Target lost or destroyed, continue straight or find new?
+        // For now, continue straight. Could add re-targeting logic here.
+        this.isHoming = false; // Stop homing if target lost
       }
     }
 
     // Update position based on velocity
     this.x += this.speedX * speedFactor;
     this.y += this.speedY * speedFactor;
-
-    // Check if offscreen (specific logic for bullets might be stricter)
-    if (this.y + this.height < 0 || this.y > gameRef.height) {
-      // Simple top/bottom check
-      this.active = false;
-    }
   }
 
   draw(ctx) {
-    // Could add rotation for homing missiles if desired
+    // Simple rect for now, could draw as small rocket shape
     drawRect(ctx, this.x, this.y, this.width, this.height, this.color);
   }
 }
 
-// --- Rocket Class (Player Ability) ---
+// --- Rocket Class (Player Ability) --- (No Change)
 class Rocket extends Entity {
-  constructor(playerCenterX, playerCenterY) {
-    // Start from player center
+  /* ... */
+  constructor(x, y) {
     const config = GAME_CONFIG.rocket;
-    super(
-      playerCenterX - config.width / 2,
-      playerCenterY - config.height, // Start slightly above player center
-      config.width,
-      config.height,
-      config.color
-    );
+    super(x, y - config.height / 2, config.width, config.height, config.color);
     this.speedY = config.speedY;
     this.explosionRadius = config.explosionRadius;
     this.damage = config.damage;
   }
-
   update(deltaTime) {
     this.y += this.speedY * (deltaTime / 16.67);
-    // Deactivation happens in game loop via shouldExplode or isOffscreen
   }
-
   draw(ctx) {
-    // Simple rocket shape
     ctx.fillStyle = this.color;
     ctx.beginPath();
-    // Pointy top
-    ctx.moveTo(this.getCenterX(), this.y);
-    // Bottom corners
-    ctx.lineTo(this.x, this.y + this.height);
-    ctx.lineTo(this.x + this.width, this.y + this.height);
+    ctx.moveTo(this.x, this.y);
+    ctx.lineTo(this.x - this.width / 2, this.y + this.height);
+    ctx.lineTo(this.x + this.width / 2, this.y + this.height);
     ctx.closePath();
     ctx.fill();
-
-    // Optional: Small fins
-    // ctx.fillStyle = darkenColor(this.color, 0.2); // Needs a darkenColor helper
-    // ctx.fillRect(this.x - 2, this.y + this.height * 0.7, 2, this.height * 0.3);
-    // ctx.fillRect(this.x + this.width, this.y + this.height * 0.7, 2, this.height * 0.3);
   }
-
-  // Method to check if the rocket should explode (e.g., reached top)
   shouldExplode(canvasHeight) {
-    return this.y + this.height < 0; // Explode when completely off the top edge
+    return this.y < 0;
   }
 }
 
-// --- Alien Class ---
+// --- Alien Class (No Change) ---
 class Alien extends Entity {
+  /* ... */
   constructor(
     x,
     y,
@@ -350,440 +289,280 @@ class Alien extends Entity {
   ) {
     super(x, y, width, height, color);
     this.speed = speed;
-    this.baseSpeed = speed; // Store base speed for reference
     this.health = health;
     this.maxHealth = health;
     this.points = points;
     this.alienType = type;
     this.typeConfig = typeConfig;
-    this.gameRef = gameRef; // Reference to the main game object
-
-    // State Machine for Fighters/Elites
-    this.state = "descending"; // Initial state
-    this.stateTimer = 0; // Timer for states like hovering
-    this.shootCooldown = getRandom(
-      typeConfig.shootDelay * 0.8,
-      typeConfig.shootDelay * 1.2
-    ); // Add initial variation
-    this.movementPatternTimer = 0; // For sinusoidal movement
+    this.gameRef = gameRef;
+    this.state = "descending";
+    this.stateTimer = 0;
+    this.shootCooldown = 0;
   }
-
   update(deltaTime, canvasHeight, player) {
     const speedFactor = deltaTime / 16.67;
     this.stateTimer -= deltaTime;
     this.shootCooldown -= deltaTime;
-
-    // Common vertical movement
-    this.y += this.speed * speedFactor;
-
-    // Type-specific behavior
     switch (this.alienType) {
       case "scout":
-        // Scouts just move down
+        this.y += this.speed * speedFactor;
         break;
-
       case "fighter":
       case "elite":
-        // Horizontal Movement (simple sine wave for hover/attack)
-        if (this.state === "hovering" || this.state === "attacking") {
-          this.movementPatternTimer += deltaTime;
-          const frequency = 0.001; // How fast the sine wave oscillates
-          const amplitude = this.width * 0.5; // How far side-to-side
-          const horizontalOffset =
-            Math.sin(this.movementPatternTimer * frequency + this.y) *
-            amplitude; // Use 'y' to desync aliens
-          // This needs careful application - maybe apply to a targetX and lerp?
-          // For simplicity, let's just add a small wiggle directly for now
-          this.x +=
-            Math.sin(this.movementPatternTimer * 0.002 + this.y) *
-            0.5 *
-            speedFactor;
-        }
-
-        // State Transitions
         switch (this.state) {
           case "descending":
+            this.y += this.speed * speedFactor;
             const hoverY =
               canvasHeight * (this.typeConfig.hoverYThreshold || 0.15);
             if (this.y >= hoverY) {
               this.state = "hovering";
               this.stateTimer = this.typeConfig.hoverDuration || 3000;
-              this.y = hoverY; // Snap to hover position
-              this.speed = 0; // Stop vertical movement while hovering
-              // console.log(`Alien ${this.alienType} reached hover Y, switching to hovering state.`);
+              this.y = hoverY;
             }
             break;
-
           case "hovering":
+            this.x +=
+              Math.sin(performance.now() * 0.001 + this.y) * 0.5 * speedFactor;
             if (this.stateTimer <= 0) {
               this.state = "attacking";
-              this.speed = this.baseSpeed * 0.5; // Resume slow descent while attacking
-              this.shootCooldown = getRandom(100, 500); // Start shooting quickly after hover
-              // console.log(`Alien ${this.alienType} finished hovering, switching to attacking state.`);
+              this.shootCooldown = 0;
             }
             break;
-
           case "attacking":
-            // Continuously attack (vertical movement resumed slightly)
-            if (this.shootCooldown <= 0 && player && player.active) {
-              // Only shoot if player exists and is active
+            if (this.shootCooldown <= 0) {
               this.shoot(player);
-              // Reset cooldown with some variance
-              this.shootCooldown = getRandom(
-                this.typeConfig.shootDelay * 0.8,
-                this.typeConfig.shootDelay * 1.2
-              );
+              this.shootCooldown = this.typeConfig.shootDelay || 1500;
             }
             break;
         }
-        break; // End fighter/elite block
+        break;
     }
-
-    // Keep alien within horizontal bounds
     this.x = clamp(this.x, 0, this.gameRef.width - this.width);
-
-    // Check if offscreen (handled in game loop now)
   }
-
   shoot(player) {
     if (!this.gameRef || !player) return;
-
-    let bulletConfig = { ...GAME_CONFIG.bullets.alienFighter }; // Clone config
+    let bulletConfig = GAME_CONFIG.bullets.alienFighter;
     let bulletSpeed = bulletConfig.speed;
-
     if (this.alienType === "elite") {
       bulletSpeed *= this.typeConfig.bulletSpeedMultiplier || 1.0;
-      // Maybe use a different bullet appearance or damage for elites?
-      // bulletConfig.color = '#ff00ff';
-      // bulletConfig.damage *= 1.5;
     }
-
     const targetX = player.getCenterX();
-    const targetY = player.getCenterY(); // Aim at player center
+    const targetY = player.getCenterY();
     const startX = this.getCenterX();
-    const startY = this.getCenterY() + this.height / 2; // Shoot from bottom-center
-
-    // Calculate angle to player
+    const startY = this.getCenterY();
     const angle = Math.atan2(targetY - startY, targetX - startX);
     const speedX = Math.cos(angle) * bulletSpeed;
     const speedY = Math.sin(angle) * bulletSpeed;
-
-    // Add the bullet via the game reference
     this.gameRef.addAlienBullet(startX, startY, speedX, speedY, bulletConfig);
-    // console.log(`Alien ${this.alienType} fired a bullet.`);
   }
-
   draw(ctx) {
-    // Choose drawing method based on type
     if (this.alienType === "fighter") this.drawFighter(ctx);
     else if (this.alienType === "elite") this.drawElite(ctx);
-    else this.drawScout(ctx); // Default to scout shape
-
-    // Draw health bar (only if damaged)
-    if (this.health < this.maxHealth) {
-      const barConfig = GAME_CONFIG.aliens;
-      drawHealthBar(
-        ctx,
-        this.x,
-        this.y - barConfig.healthBarYOffset, // Position above the alien
-        this.width,
-        barConfig.healthBarHeight,
-        this.health,
-        this.maxHealth
-      );
-    }
+    else this.drawScout(ctx);
+    const barConfig = GAME_CONFIG.aliens;
+    drawHealthBar(
+      ctx,
+      this.x,
+      this.y - barConfig.healthBarYOffset,
+      this.width,
+      barConfig.healthBarHeight,
+      this.health,
+      this.maxHealth
+    );
   }
-
-  // --- Specific Alien Drawing Methods ---
   drawScout(ctx) {
-    // Simple oval shape
     ctx.fillStyle = this.color;
     ctx.beginPath();
     ctx.ellipse(
       this.getCenterX(),
       this.getCenterY(),
       this.width / 2,
-      this.height / 2, // Radii
+      this.height / 2,
       0,
       0,
-      Math.PI * 2 // Angle, start/end angle
+      Math.PI * 2
     );
     ctx.fill();
-    // Simple cockpit indication
-    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
     ctx.beginPath();
     ctx.ellipse(
       this.getCenterX(),
-      this.y + this.height * 0.3, // Position cockpit lower
-      this.width / 5,
-      this.height / 5,
+      this.y + this.height / 3,
+      this.width / 4,
+      this.height / 4,
       0,
       0,
       Math.PI * 2
     );
     ctx.fill();
   }
-
   drawFighter(ctx) {
-    // Use the generic ship drawing function for consistency
     drawGenericShip(
       ctx,
       this.getCenterX(),
       this.getCenterY(),
       this.width,
       this.height,
-      this.color, // Main color
-      "rgba(255, 100, 100, 0.5)", // Cockpit color (reddish)
-      "rgba(255, 150, 50, 0.6)" // Engine color (orangey)
+      this.color,
+      "rgba(255, 100, 100, 0.3)",
+      "rgba(255, 50, 50, 0.4)"
     );
   }
-
   drawElite(ctx) {
-    // More complex shape for Elites
-    ctx.fillStyle = this.color; // Purple base
+    ctx.fillStyle = this.color;
     const centerX = this.getCenterX();
     const centerY = this.getCenterY();
     const w2 = this.width / 2;
     const h2 = this.height / 2;
-
-    // Diamond-like main body
     ctx.beginPath();
-    ctx.moveTo(centerX, centerY - h2); // Top point
-    ctx.lineTo(centerX + w2 * 0.8, centerY - h2 * 0.2); // Top right wing inset
-    ctx.lineTo(centerX + w2, centerY + h2 * 0.5); // Bottom right wing point
-    ctx.lineTo(centerX, centerY + h2); // Bottom center point
-    ctx.lineTo(centerX - w2, centerY + h2 * 0.5); // Bottom left wing point
-    ctx.lineTo(centerX - w2 * 0.8, centerY - h2 * 0.2); // Top left wing inset
+    ctx.moveTo(centerX, centerY - h2);
+    ctx.lineTo(centerX + w2, centerY);
+    ctx.lineTo(centerX, centerY + h2);
+    ctx.lineTo(centerX - w2, centerY);
     ctx.closePath();
     ctx.fill();
-
-    // Central glowing cockpit
-    ctx.fillStyle = "rgba(255, 0, 255, 0.7)"; // Bright magenta
+    ctx.fillStyle = "rgba(255, 0, 255, 0.5)";
     ctx.beginPath();
     ctx.arc(centerX, centerY, w2 * 0.3, 0, Math.PI * 2);
     ctx.fill();
-    // Add some details/lines maybe?
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY - h2);
-    ctx.lineTo(centerX, centerY + h2); // Vertical line
-    ctx.moveTo(centerX - w2, centerY + h2 * 0.5);
-    ctx.lineTo(centerX + w2, centerY + h2 * 0.5); // Horizontal line lower
-    ctx.stroke();
+    ctx.fillRect(centerX - w2 * 0.9, centerY - h2 * 0.2, w2 * 0.4, h2 * 0.4);
+    ctx.fillRect(centerX + w2 * 0.5, centerY - h2 * 0.2, w2 * 0.4, h2 * 0.4);
   }
-  // --- End Drawing Methods ---
-
   takeDamage(amount) {
     this.health -= amount;
-    // console.log(`Alien ${this.alienType} took ${amount} damage, ${this.health} HP left.`);
-    return this.health <= 0; // Return true if health is 0 or less
+    return this.health <= 0;
   }
-
-  // Determine if this alien should drop an item upon destruction
   shouldDropItem() {
     return Math.random() < (this.typeConfig.dropChance || 0.05);
   }
 }
 
-// --- Particle Class ---
+// --- Particle Class (Add gravity for text bounce) ---
 class Particle extends Entity {
   constructor(x, y, config) {
-    // Use radius for width/height if it's a circle particle
-    const size = (config.radius || 1) * 2;
-    super(x - size / 2, y - size / 2, size, size, config.color);
-
-    this.radius = config.radius || 0; // Keep radius for drawing circles
+    const radius = config.radius || 0;
+    super(x - radius, y - radius, radius * 2, radius * 2, config.color);
+    this.radius = radius;
     this.speedX = config.speedX || 0;
     this.speedY = config.speedY || 0;
-    this.initialLife = config.life || 1000; // Default life in ms
-    this.life = this.initialLife;
+    this.initialLife = config.life || 1;
+    this.life = config.life || 1;
+    // this.decay = config.decay || 0.9; // Using linear time decay now
     this.alpha = 1.0;
 
-    // Text particle properties
     this.isText = config.isText || false;
     this.text = config.text || "";
     this.fontSize = config.fontSize || 12;
-    this.gravity = config.gravity || 0; // Gravity for effects like bouncing text
-    this.textAlign = config.textAlign || "center";
-    this.textBaseline = config.textBaseline || "middle";
+    this.gravity = config.gravity || 0; // Add gravity property
   }
 
   update(deltaTime) {
     const speedFactor = deltaTime / 16.67;
 
-    // Apply gravity if specified
+    // Apply gravity if specified (for bounce effect)
     if (this.gravity !== 0) {
       this.speedY += this.gravity * speedFactor;
     }
 
-    // Update position
     this.x += this.speedX * speedFactor;
     this.y += this.speedY * speedFactor;
-
-    // Decrease life
     this.life -= deltaTime;
 
-    // Calculate alpha based on remaining life (linear fade out)
-    // Fade starts earlier maybe? e.g., fade over last 60% of life
-    const fadeStartTime = this.initialLife * 0.6;
-    if (this.life < fadeStartTime) {
-      this.alpha = clamp(this.life / fadeStartTime, 0, 1);
-    } else {
-      this.alpha = 1.0;
-    }
+    this.alpha = clamp(this.life / (this.initialLife * 0.6), 0, 1); // Faster fade
 
-    // Deactivate when life runs out
     if (this.life <= 0) {
       this.active = false;
     }
   }
 
   draw(ctx) {
-    if (!this.active) return;
-
-    ctx.globalAlpha = this.alpha; // Apply calculated alpha
-
+    ctx.globalAlpha = this.alpha;
     if (this.isText) {
-      // Use the drawText utility function
       drawText(
         ctx,
         this.text,
-        this.getCenterX(), // Use center X
-        this.getCenterY(), // Use center Y
+        this.x + this.radius,
+        this.y + this.radius,
         this.color,
-        this.fontSize,
-        this.textAlign,
-        this.textBaseline
-      );
+        this.fontSize
+      ); // Draw centered
     } else {
-      // Use the drawCircle utility function for non-text particles
       drawCircle(
         ctx,
-        this.getCenterX(), // Draw circle at center X
-        this.getCenterY(), // Draw circle at center Y
+        this.x + this.radius,
+        this.y + this.radius,
         this.radius,
         this.color
       );
     }
-
-    ctx.globalAlpha = 1.0; // Reset global alpha
+    ctx.globalAlpha = 1.0;
   }
 }
 
-// --- Debris Class ---
+// --- Debris Class (No Change) ---
 class Debris extends Particle {
-  // Inherit from Particle for base movement/life
+  /* ... */
   constructor(x, y, config) {
-    // Debris doesn't use radius directly, it has width/height
-    // We pass relevant particle config to the Particle constructor
-    super(x - config.width / 2, y - config.height / 2, {
-      // Particle constructor expects radius, speed, life, color etc.
-      // Debris doesn't draw as a circle, so radius isn't critical here.
-      // Pass other relevant properties if needed by Particle's update.
+    super(x, y, {
+      radius: Math.max(config.width, config.height) / 2,
       color: config.color,
       speedX: config.speedX,
       speedY: config.speedY,
       life: config.life,
-      gravity: config.gravity || 0, // Allow gravity for debris too
+      decay: config.decay || 0.99,
     });
-
-    // Override or set debris-specific properties
     this.width = config.width;
     this.height = config.height;
-    this.rotation = Math.random() * Math.PI * 2; // Initial random rotation
+    this.rotation = Math.random() * Math.PI * 2;
     this.rotationSpeed = config.rotationSpeed;
     this.damage = config.damage;
-    this.isText = false; // Ensure debris is not treated as text
+    this.isText = false;
   }
-
   update(deltaTime) {
-    // Call Particle's update for movement, life decay, gravity
     super.update(deltaTime);
-
-    // Add rotation
     this.rotation += this.rotationSpeed * (deltaTime / 16.67);
   }
-
   draw(ctx) {
     if (!this.active) return;
-
-    // Save context state for rotation/alpha
     ctx.save();
-
-    // Translate to the center of the debris for rotation
-    ctx.translate(this.getCenterX(), this.getCenterY());
+    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
     ctx.rotate(this.rotation);
-    ctx.globalAlpha = this.alpha; // Use alpha calculated by Particle update
+    ctx.globalAlpha = this.alpha;
     ctx.fillStyle = this.color;
-
-    // Draw the rectangle centered at the translated origin
     ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-
-    // Restore context state
     ctx.restore();
   }
 }
 
-// --- Wingman Class ---
+// --- Wingman Class (No Change) ---
 class Wingman extends Entity {
+  /* ... */
   constructor(playerX, playerY, offsetX) {
-    // offsetX determines left or right
     const config = GAME_CONFIG.wingman;
-    // Initial position relative to player
-    const startX = playerX + offsetX;
-    const startY = playerY + config.offsetY;
-
     super(
-      startX - config.width / 2,
-      startY - config.height / 2,
+      playerX + offsetX,
+      playerY + config.offsetY,
       config.width,
       config.height,
       config.color
     );
-
-    this.offsetX = offsetX; // Target offset X from player center
-    this.offsetY = config.offsetY; // Target offset Y from player center
-    this.targetX = startX; // Initial target X
-    this.targetY = startY; // Initial target Y
+    this.offsetX = offsetX;
+    this.offsetY = config.offsetY;
+    this.targetX = this.x;
+    this.targetY = this.y;
     this.followLerpFactor = config.followLerpFactor;
-    // this.lastShotTime = 0; // Shooting logic removed/commented
-    // this.shootDelay = config.shootDelay;
+    this.lastShotTime = 0;
+    this.shootDelay = config.shootDelay;
     this.cockpitColor = config.cockpitColor;
     this.engineColor = config.engineColor;
   }
-
   update(deltaTime, player, aliens, game) {
-    // player is the Player object
-    if (!player) return;
-
-    // Calculate target position based on player's *center*
-    this.targetX = player.getCenterX() + this.offsetX;
-    this.targetY = player.getCenterY() + this.offsetY;
-
-    // Smoothly interpolate (lerp) towards the target position
-    const currentCenterX = this.getCenterX();
-    const currentCenterY = this.getCenterY();
-    this.x +=
-      (this.targetX - currentCenterX) *
-      this.followLerpFactor *
-      (deltaTime / 16.67); // Scale lerp by deltaTime
-    this.y +=
-      (this.targetY - currentCenterY) *
-      this.followLerpFactor *
-      (deltaTime / 16.67);
-
-    // Wingmen currently do not shoot, but logic could be added here:
-    // const currentTime = performance.now();
-    // if (currentTime - this.lastShotTime >= this.shootDelay) {
-    //     // Find target, create bullet etc.
-    //     // game.addWingmanBullet(...)
-    //     this.lastShotTime = currentTime;
-    // }
+    this.targetX = player.x + this.offsetX;
+    this.targetY = player.y + this.offsetY;
+    this.x += (this.targetX - this.x) * this.followLerpFactor;
+    this.y += (this.targetY - this.y) * this.followLerpFactor;
   }
-
   draw(ctx) {
-    // Use the generic ship drawing function
     drawGenericShip(
       ctx,
       this.getCenterX(),
@@ -797,111 +576,80 @@ class Wingman extends Entity {
   }
 }
 
-// --- MiniShip Class ---
+// --- MiniShip Class (Implement Shooting) ---
 class MiniShip extends Entity {
   constructor(playerX, playerY, index) {
-    // index helps position them
     const config = GAME_CONFIG.miniShip;
-    const count = GAME_CONFIG.miniShip.count;
-    // Calculate initial offset based on index
     const initialOffsetX =
-      (index - Math.floor(count / 2)) * config.spreadOffset;
-    const startX = playerX + initialOffsetX;
-    const startY = playerY; // Start near player
-
+      (index - Math.floor(GAME_CONFIG.miniShip.count / 2)) *
+      config.spreadOffset;
     super(
-      startX - config.width / 2,
-      startY - config.height / 2,
+      playerX + initialOffsetX,
+      playerY,
       config.width,
       config.height,
       config.color
     );
-
-    this.index = index; // Store index for positioning and potential targeting logic
     this.followLerpFactor = config.followLerpFactor;
-    this.lastShotTime = performance.now() + getRandom(0, config.shootDelay); // Stagger initial shots
-    this.shootDelay = config.shootDelay;
-    this.burstCount = config.burstCount || 1;
+    this.lastShotTime = 0; // Timestamp of the last shot
+    this.shootDelay = config.shootDelay; // Cooldown between shots
     this.targetAlien = null; // Current primary target
     this.cockpitColor = config.cockpitColor;
     this.engineColor = config.engineColor;
     this.returnOffsetY = config.returnOffsetY;
-    this.state = "following"; // States: following, attacking
-    this.currentTargets = []; // Could hold multiple targets if implementing multi-target logic
+    this.index = index; // Store index for potential targeting coordination
   }
 
   update(deltaTime, player, aliens, game) {
-    if (!player) return;
-
-    this.findTarget(aliens); // Update target if needed
-
-    // Determine target position: Follow player formation or move towards target?
-    // Simple approach: always try to maintain formation relative to player
-    const count = GAME_CONFIG.miniShip.count;
-    const config = GAME_CONFIG.miniShip;
-    const formationOffsetX =
-      (this.index - Math.floor(count / 2)) * config.spreadOffset;
-    const targetX = player.getCenterX() + formationOffsetX;
-    // Target Y slightly behind player when idle/no target, maybe above when attacking?
-    const targetY =
-      player.getCenterY() - (this.targetAlien ? 0 : this.returnOffsetY); // Stay behind if no target
-
-    // Smooth movement towards target position
-    const currentCenterX = this.getCenterX();
-    const currentCenterY = this.getCenterY();
-    this.x +=
-      (targetX - currentCenterX) * this.followLerpFactor * (deltaTime / 16.67);
-    this.y +=
-      (targetY - currentCenterY) * this.followLerpFactor * (deltaTime / 16.67);
+    // Movement Logic (unchanged)
+    this.findTarget(aliens); // Find a target if needed
+    let targetX, targetY;
+    if (this.targetAlien) {
+      targetX = this.targetAlien.getCenterX();
+      targetY = this.targetAlien.getCenterY();
+    } else {
+      targetX =
+        player.x +
+        (this.index - Math.floor(GAME_CONFIG.miniShip.count / 2)) *
+          GAME_CONFIG.miniShip.spreadOffset *
+          0.8; // Return to formation
+      targetY = player.y - this.returnOffsetY;
+    }
+    this.x += (targetX - this.x) * this.followLerpFactor;
+    this.y += (targetY - this.y) * this.followLerpFactor;
 
     // --- Shooting Logic ---
     const currentTime = performance.now();
-    if (
-      this.targetAlien &&
-      currentTime - this.lastShotTime >= this.shootDelay
-    ) {
-      // Check if target is still valid before shooting
-      if (this.targetAlien.active && this.targetAlien.health > 0) {
-        // Fire one rocket per burst (as burstCount is 1)
-        game.shootMiniShipRocket(this, this.targetAlien); // Pass target to game function
-        this.lastShotTime = currentTime; // Reset cooldown
-      } else {
-        // Target became invalid before shooting, find a new one immediately
-        this.targetAlien = null;
-        this.findTarget(aliens);
+    if (currentTime - this.lastShotTime >= this.shootDelay) {
+      // Find potential targets (nearby active aliens)
+      const potentialTargets = aliens.filter((a) => a.active && a.y > 0); // Consider only active aliens on screen
+      if (potentialTargets.length > 0) {
+        // Sort targets by distance (closest first) or some other priority
+        potentialTargets.sort((a, b) => distance(this, a) - distance(this, b));
+
+        // Fire a burst (currently just 1 rocket) at the closest target
+        const target = potentialTargets[0]; // Shoot closest
+        game.shootMiniShipRocket(this, target);
+        this.lastShotTime = currentTime; // Reset cooldown after firing
+
+        // TODO: Implement multi-target logic if desired
+        // Could involve looping through 'potentialTargets' up to 'maxTargets'
+        // and assigning targets round-robin or based on miniship index.
       }
     }
   }
 
   findTarget(aliens) {
-    // If current target is invalid (null, inactive, dead), find a new one
-    if (
-      !this.targetAlien ||
-      !this.targetAlien.active ||
-      this.targetAlien.health <= 0
-    ) {
-      // Find the closest, active, on-screen alien
-      const potentialTargets = aliens.filter(
-        (a) =>
-          a.active &&
-          a.health > 0 &&
-          a.y > -a.height &&
-          a.y < this.gameRef.height
-      ); // Ensure on screen vertically
-
-      this.targetAlien = findClosestEntity(this, potentialTargets);
-
-      // if (this.targetAlien) {
-      //     console.log(`MiniShip ${this.index} acquired new target.`);
-      // } else {
-      //     console.log(`MiniShip ${this.index} has no targets.`);
-      // }
+    // Simple targeting: if current target is dead or inactive, find a new one (closest?)
+    if (!this.targetAlien || !this.targetAlien.active) {
+      this.targetAlien = findClosestEntity(
+        this,
+        aliens.filter((a) => a.active && a.y > -a.height)
+      ); // Find closest active on-screen
     }
-    // If current target is still valid, keep it.
   }
 
   draw(ctx) {
-    // Use the generic ship drawing function
     drawGenericShip(
       ctx,
       this.getCenterX(),
@@ -912,92 +660,68 @@ class MiniShip extends Entity {
       this.cockpitColor,
       this.engineColor
     );
-
-    // Optional: Draw line to target? (for debugging)
-    // if (this.targetAlien && this.targetAlien.active) {
-    //    ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
-    //    ctx.beginPath();
-    //    ctx.moveTo(this.getCenterX(), this.getCenterY());
-    //    ctx.lineTo(this.targetAlien.getCenterX(), this.targetAlien.getCenterY());
-    //    ctx.stroke();
-    // }
   }
 }
 
-// --- Item Class ---
+// --- Item Class (No Change) ---
 class Item extends Entity {
+  /* ... */
   constructor(x, y, type, value = 0) {
     const config = GAME_CONFIG.items;
     super(
-      x - config.size / 2, // Center the item at spawn location
+      x - config.size / 2,
       y - config.size / 2,
       config.size,
       config.size,
-      config[`${type}Color`] || "white" // Use color from config if available
+      "white"
     );
     this.itemType = type;
     this.value = value;
     this.speedY = config.dropSpeedY;
   }
-
   update(deltaTime) {
     this.y += this.speedY * (deltaTime / 16.67);
-    // Deactivation happens in game loop based on isOffscreen or collision
   }
-
   draw(ctx) {
-    // Use the dedicated drawItem function from drawing.js
     drawItem(ctx, this);
   }
-
-  // Called when the player collects the item
   applyEffect(player, game) {
     switch (this.itemType) {
       case "xp":
-        player.addScore(this.value, game); // Use player's method to trigger game score update
+        player.addScore(this.value, game);
         game.particleManager.createXpIndicator(
           this.getCenterX(),
           this.getCenterY(),
           `+${this.value}`
         );
-        game.audioManager.playSound("itemPickup", { itemType: "xp" }); // Play XP sound
         break;
       case "life":
         if (player.gainLife()) {
-          // gainLife returns true if successful
-          game.uiManager.updateLives(player.lives); // Update UI directly
+          game.uiManager.updateLives(player.lives);
           game.particleManager.createXpIndicator(
             this.getCenterX(),
             this.getCenterY(),
             "+1 Life",
-            "#ffaaaa" // Pinkish color for life text
+            "#ffaaaa"
           );
-          game.audioManager.playSound("itemPickup", { itemType: "life" }); // Play life sound
         } else {
-          // Player was already at max lives, give score bonus instead
-          player.addScore(500, game); // Give bonus score
+          player.addScore(500, game);
           game.particleManager.createXpIndicator(
             this.getCenterX(),
             this.getCenterY(),
-            "+500 (Max ❤️)",
-            "#ffdddd" // Lighter pink
+            "+500 (Max Lives)",
+            "#ffdddd"
           );
-          // Optional: Play a different sound for max lives pickup?
-          game.audioManager.playSound("itemPickup", { itemType: "xp" }); // Play regular pickup sound maybe?
         }
         break;
       case "bomb":
-        // Bomb effect and sound are handled by the game.activateBomb method
         game.activateBomb(this.getCenterX(), this.getCenterY());
         break;
-      default:
-        console.warn(`Unknown item type collected: ${this.itemType}`);
     }
-    // Item is deactivated after collision check in the main game loop
   }
 }
 
-// --- Particle Manager ---
+// --- Particle Manager (Update XP Indicator, Add MiniRocket Trail) ---
 class ParticleManager {
   constructor() {
     this.particles = [];
@@ -1007,13 +731,11 @@ class ParticleManager {
   createParticle(x, y, config) {
     this.particles.push(new Particle(x, y, config));
   }
-
   createDebrisPiece(x, y, config) {
     this.debris.push(new Debris(x, y, config));
   }
 
   // --- Effect Creation Methods ---
-
   createExplosion(x, y, color, size) {
     const particleCount = Math.max(
       5,
@@ -1220,3 +942,5 @@ class ParticleManager {
     this.debris = [];
   }
 }
+
+

@@ -97,3 +97,4 @@ function findFurthestEntity(source, targets) {
 
 // Export functions if using modules, otherwise they are global
 // export { getRandom, getRandomInt, clamp, checkCollision, distance, findClosestEntity, findFurthestEntity };
+
