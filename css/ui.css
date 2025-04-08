@@ -1,0 +1,258 @@
+/* css/ui.css */
+
+/* ... existing styles for #gameUI, .ui-section, .powerBar, .powerFill, .max-level-blink ... */
+#gameUI {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  text-shadow: 0 0 5px #00ffff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 8px 15px;
+  border-radius: 10px;
+  display: flex;
+  gap: 15px;
+  z-index: 5;
+  align-items: center;
+}
+.ui-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.4;
+}
+.powerBar {
+  margin-top: 3px;
+  height: 6px;
+  background: #333;
+  border-radius: 3px;
+  overflow: hidden;
+  width: 70px;
+}
+.powerFill {
+  height: 100%;
+  background: linear-gradient(to right, #00aaff, #00ffff);
+  width: 0%;
+  transition: width 0.3s;
+}
+.powerFill.max-level-blink {
+  animation: pulseBlueWhite 1s infinite alternate;
+}
+@keyframes pulseBlueWhite {
+  from {
+    background: #00ffff;
+    box-shadow: 0 0 3px #fff, 0 0 5px #00ffff;
+  }
+  to {
+    background: #ffffff;
+    box-shadow: 0 0 5px #fff, 0 0 10px #00ffff;
+  }
+}
+
+/* --- Unlock Bar (Repositioned Absolutely) --- */
+#unlockBarContainer {
+  position: absolute;
+  top: 75px;
+  right: 20px;
+  align-items: center;
+  width: 165px; /* Or adjust width as desired */
+  height: 8px;
+  background: rgba(50, 50, 50, 0.7); /* Slightly darker background */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  z-index: 5; /* Same level as other UI elements */
+  box-sizing: border-box;
+  overflow: hidden;
+  /* Ensure it's visible */
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
+#unlockBarFill {
+  height: 100%;
+  background: linear-gradient(to right, #ffaa00, #ffff00);
+  border-radius: 3px; /* Slightly smaller than container */
+  width: 0%;
+  transition: width 0.5s ease-out;
+  position: relative;
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Unlock Bar Glow/Blink Effects (No changes here) */
+#unlockBarFill.progress-glow {
+  animation: unlockGlowPulse 0.5s ease-out;
+}
+#unlockBarFill.max-level-blink {
+  animation: unlockMaxPulse 1.2s infinite alternate;
+}
+@keyframes unlockGlowPulse {
+  0% {
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.4), 0 0 3px #fff, 0 0 5px #ffff00;
+  }
+  50% {
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px #fff, 0 0 15px #ffffaa;
+  }
+  100% {
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.4), 0 0 3px #fff, 0 0 5px #ffff00;
+  }
+}
+@keyframes unlockMaxPulse {
+  from {
+    background: #ffff00;
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.4), 0 0 4px #fff, 0 0 8px #ffff00;
+  }
+  to {
+    background: #ffffff;
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px #fff, 0 0 15px #ffffaa;
+  }
+}
+
+/* ... rest of ui.css (Screens, High Scores, Level Up, Timers) ... */
+.screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  z-index: 10;
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.screen.hidden {
+  display: none;
+}
+.screen h1 {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: #00ffff;
+  text-shadow: 0 0 10px #00ffff;
+}
+.screen h2 {
+  font-size: 24px;
+  color: #ffffaa;
+  margin-top: 30px;
+  margin-bottom: 10px;
+}
+.screen p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.screen button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background: linear-gradient(to bottom, #00aaaa, #008888);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: all 0.3s;
+}
+.screen button:hover {
+  background: linear-gradient(to bottom, #00cccc, #00aaaa);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px #00ffff;
+}
+.instructions {
+  margin-top: 20px;
+  max-width: 550px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+.highlight {
+  color: #00ffff;
+  font-weight: bold;
+}
+#highScoresList,
+#highScoresListGameOver {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: 300px;
+  width: 80%;
+}
+#highScoresList li,
+#highScoresListGameOver li {
+  background: rgba(255, 255, 255, 0.1);
+  margin-bottom: 8px;
+  padding: 8px 15px;
+  border-radius: 5px;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+}
+#highScoresList li:nth-child(1),
+#highScoresListGameOver li:nth-child(1) {
+  background: rgba(255, 215, 0, 0.2);
+}
+#highScoresList li:nth-child(2),
+#highScoresListGameOver li:nth-child(2) {
+  background: rgba(192, 192, 192, 0.2);
+}
+#highScoresList li:nth-child(3),
+#highScoresListGameOver li:nth-child(3) {
+  background: rgba(205, 127, 50, 0.2);
+}
+.level-up-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 48px;
+  text-align: center;
+  text-shadow: 0 0 10px #00ffff;
+  opacity: 0;
+  z-index: 20;
+  pointer-events: none;
+  animation: levelUpFade 2s ease-out forwards;
+}
+@keyframes levelUpFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -40%);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+}
+.ability-duration-timer {
+  position: absolute;
+  right: 20px;
+  font-size: 12px;
+  text-shadow: 0 0 5px currentColor;
+  z-index: 5;
+  display: none;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+#wingmanTimer {
+  bottom: 80px;
+  color: #55ff00;
+}
+#miniShipTimer {
+  bottom: 110px;
+  color: #00aaff;
+}
+.ability-duration-timer.visible {
+  display: block;
+}

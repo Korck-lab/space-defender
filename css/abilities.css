@@ -1,0 +1,137 @@
+/* css/abilities.css */
+
+.abilities-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 2px;
+  z-index: 5;
+}
+
+/* --- Rest of the ability styles remain the same --- */
+.ability {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+}
+.ability:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+.ability.locked {
+  border-color: #555;
+  background: rgba(50, 50, 50, 0.7);
+  cursor: default;
+  opacity: 0.5;
+}
+.ability.locked:hover {
+  transform: scale(1);
+  box-shadow: none;
+}
+.ability.locked .ability-icon {
+  color: #888;
+}
+.ability.locked .ability-key {
+  color: #888;
+}
+.ability-icon {
+  font-size: 20px;
+  margin-bottom: 3px;
+  color: white;
+  z-index: 2;
+}
+.ability-key {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 3px;
+  padding: 1px 3px;
+  color: white;
+  z-index: 2;
+}
+.ability-cooldown {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 0 0 6px 6px;
+  transition: height 0.1s linear;
+  z-index: 1;
+}
+.ability.on-cooldown {
+  opacity: 0.6;
+  cursor: default;
+}
+.ability.locked.on-cooldown {
+  opacity: 0.5;
+}
+.ability.feedback-active {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px currentColor;
+}
+.ability.ready-flash {
+  animation: readyPulse 1s ease-in-out;
+}
+@keyframes readyPulse {
+  0%,
+  100% {
+    box-shadow: none;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 15px white;
+    transform: scale(1.05);
+  }
+}
+.ability:not(.locked)#ability-bulletMode {
+  border-color: #aa00aa;
+}
+.ability:not(.locked)#ability-rocket {
+  border-color: #ff5500;
+}
+.ability:not(.locked)#ability-wingman {
+  border-color: #55aa00;
+}
+.ability:not(.locked)#ability-miniShip {
+  border-color: #0055ff;
+}
+.ability:not(.locked)#ability-bulletMode.parallel-active {
+  border-color: #00aa00;
+}
+.ability:not(.locked)#ability-rocket.feedback-active {
+  border-color: #ffaa00;
+  box-shadow: 0 0 15px #ffaa00;
+}
+.ability:not(.locked)#ability-wingman.feedback-active,
+.ability:not(.locked)#ability-wingman.duration-active {
+  border-color: #55ff00;
+  box-shadow: 0 0 15px #55ff00;
+}
+.ability:not(.locked)#ability-miniShip.feedback-active,
+.ability:not(.locked)#ability-miniShip.duration-active {
+  border-color: #00aaff;
+  box-shadow: 0 0 15px #00aaff;
+}
+.ability.feedback-active:hover,
+.ability.duration-active:hover {
+  transform: scale(1.1);
+}
+.ability.locked:hover {
+  transform: scale(1);
+  box-shadow: none;
+}

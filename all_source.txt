@@ -1,0 +1,3595 @@
+/* File: ./index.html */
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>Space Defender Evolved</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/ui.css" />
+    <link rel="stylesheet" href="css/abilities.css" />
+  </head>
+  <body>
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- In-Game HUD -->
+    <div id="gameUI">
+      <!-- ... hud content ... -->
+      <div class="ui-section">
+        <div>Score: <span id="score">0</span></div>
+        <div>Lives: <span id="lives">3</span></div>
+      </div>
+      <div class="ui-section">
+        <div>Level: <span id="level">1</span></div>
+        <div>Bullet Lvl: <span id="bulletPower">1/5</span></div>
+        <div class="powerBar">
+          <div class="powerFill" id="powerFill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ability Icons Container -->
+    <div class="abilities-container">
+      <div
+        class="ability"
+        id="ability-bulletMode"
+        title="Switch Bullet Mode (SPACE)"
+      >
+        <div class="ability-icon"><i class="fas fa-exchange-alt"></i></div>
+        <div class="ability-key">SPACE</div>
+        <div class="ability-cooldown"></div>
+      </div>
+      <div class="ability locked" id="ability-rocket" title="Fire Rocket (R)">
+        <div class="ability-icon"><i class="fas fa-rocket"></i></div>
+        <div class="ability-key">R</div>
+        <div class="ability-cooldown"></div>
+      </div>
+      <div
+        class="ability locked"
+        id="ability-wingman"
+        title="Deploy Wingmen (W)"
+      >
+        <div class="ability-icon"><i class="fas fa-robot"></i></div>
+        <div class="ability-key">W</div>
+        <div class="ability-cooldown"></div>
+      </div>
+      <div
+        class="ability locked"
+        id="ability-miniShip"
+        title="Summon Mini Ships (M)"
+      >
+        <div class="ability-icon"><i class="fas fa-space-shuttle"></i></div>
+        <div class="ability-key">M</div>
+        <div class="ability-cooldown"></div>
+      </div>
+    </div>
+    <div id="unlockBarContainer">
+      <div id="unlockBarFill"></div>
+    </div>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="screen">
+      <!-- ... screen content ... -->
+      <h1>SPACE DEFENDER</h1>
+      <h2>High Scores</h2>
+      <ul id="highScoresList">
+        <li>Loading...</li>
+      </ul>
+      <p class="instructions">
+        Use <span class="highlight">Mouse</span> to move,
+        <span class="highlight">Click</span> to toggle Auto-Fire.<br />
+        <span class="highlight">SPACE</span>/<i class="fas fa-exchange-alt"></i
+        >: Swap Weapon (Resets Lvl). <span class="highlight">ESC</span>:
+        Pause.<br />
+        Score points to unlock abilities: <i class="fas fa-rocket"></i>
+        <i class="fas fa-robot"></i> <i class="fas fa-space-shuttle"></i>.<br />
+        Defeat enemies for Bullet Level Up (<span class="highlight"
+          >5 Kills</span
+        >).<br />
+        <span class="highlight">Scouts</span> passing spawn
+        <span class="highlight">Fighters</span>.
+        <span class="highlight">Fighters/Elites</span> passing kill you!<br />
+        Collect <span class="highlight">⭐</span>XP,
+        <span class="highlight">❤️</span>Lives,
+        <span class="highlight">💣</span>Bombs!
+      </p>
+      <button id="startButton">START MISSION</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="gameOverScreen" class="screen hidden">
+      <!-- ... screen content ... -->
+      <h1>MISSION FAILED</h1>
+      <p>Final Score: <span id="finalScore">0</span></p>
+      <p>Max Bullet Lvl Reached: <span id="finalPower">1/5</span></p>
+      <h2>High Scores</h2>
+      <ul id="highScoresListGameOver"></ul>
+      <button id="restartButton">TRY AGAIN</button>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="pauseScreen" class="screen hidden">
+      <!-- ... screen content ... -->
+      <h1>GAME PAUSED</h1>
+      <p>Current score: <span id="pauseScore">0</span></p>
+      <button id="resumeButton">RESUME</button>
+      <button id="restartButton2">RESTART</button>
+    </div>
+
+    <!-- Active Ability Duration Timers -->
+    <div class="ability-duration-timer" id="wingmanTimer">Wingmen: 10s</div>
+    <div class="ability-duration-timer" id="miniShipTimer">Mini Ships: 10s</div>
+
+    <!-- JavaScript Files -->
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/drawing.js"></script>
+    <script src="js/entities.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/abilities.js"></script>
+    <script src="js/input.js"></script>
+    <script src="js/game.js"></script>
+
+    <!-- Initialization -->
+    <script>
+      window.addEventListener("load", () => {
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const game = new Game(canvas, ctx);
+
+        document
+          .getElementById("startButton")
+          .addEventListener("click", () => game.start());
+        document
+          .getElementById("restartButton")
+          .addEventListener("click", () => game.start());
+        document
+          .getElementById("restartButton2")
+          .addEventListener("click", () => game.start());
+        document
+          .getElementById("resumeButton")
+          .addEventListener("click", () => game.togglePause());
+
+        game.uiManager.highScoresListElementGameOver = document.getElementById(
+          "highScoresListGameOver"
+        );
+        game.uiManager.displayHighScores = function (scores) {
+          const displayList = (listElement) => {
+            if (!listElement) {
+              return;
+            }
+            listElement.innerHTML = "";
+            if (!scores || scores.length === 0) {
+              listElement.innerHTML = "<li>No scores yet!</li>";
+              return;
+            }
+            scores.forEach((score, index) => {
+              const li = document.createElement("li");
+              li.innerHTML = `<span>#${index + 1}</span><span>${score}</span>`;
+              listElement.appendChild(li);
+            });
+          };
+          displayList(this.highScoresListElement);
+          displayList(this.highScoresListElementGameOver);
+        };
+
+        game.uiManager.showStartScreen(game.highScores);
+
+        canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+        document.body.addEventListener(
+          "touchmove",
+          (e) => {
+            if (e.cancelable) e.preventDefault();
+          },
+          { passive: false }
+        );
+
+        console.log("Game Evolved Ready.");
+      });
+    </script>
+  </body>
+</html>
+
+
+/* File: ./css/abilities.css */
+/* css/abilities.css */
+
+.abilities-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 2px;
+  z-index: 5;
+}
+
+/* --- Rest of the ability styles remain the same --- */
+.ability {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+}
+.ability:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+}
+.ability.locked {
+  border-color: #555;
+  background: rgba(50, 50, 50, 0.7);
+  cursor: default;
+  opacity: 0.5;
+}
+.ability.locked:hover {
+  transform: scale(1);
+  box-shadow: none;
+}
+.ability.locked .ability-icon {
+  color: #888;
+}
+.ability.locked .ability-key {
+  color: #888;
+}
+.ability-icon {
+  font-size: 20px;
+  margin-bottom: 3px;
+  color: white;
+  z-index: 2;
+}
+.ability-key {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 3px;
+  padding: 1px 3px;
+  color: white;
+  z-index: 2;
+}
+.ability-cooldown {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 0%;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 0 0 6px 6px;
+  transition: height 0.1s linear;
+  z-index: 1;
+}
+.ability.on-cooldown {
+  opacity: 0.6;
+  cursor: default;
+}
+.ability.locked.on-cooldown {
+  opacity: 0.5;
+}
+.ability.feedback-active {
+  transform: scale(1.1);
+  box-shadow: 0 0 15px currentColor;
+}
+.ability.ready-flash {
+  animation: readyPulse 1s ease-in-out;
+}
+@keyframes readyPulse {
+  0%,
+  100% {
+    box-shadow: none;
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 15px white;
+    transform: scale(1.05);
+  }
+}
+.ability:not(.locked)#ability-bulletMode {
+  border-color: #aa00aa;
+}
+.ability:not(.locked)#ability-rocket {
+  border-color: #ff5500;
+}
+.ability:not(.locked)#ability-wingman {
+  border-color: #55aa00;
+}
+.ability:not(.locked)#ability-miniShip {
+  border-color: #0055ff;
+}
+.ability:not(.locked)#ability-bulletMode.parallel-active {
+  border-color: #00aa00;
+}
+.ability:not(.locked)#ability-rocket.feedback-active {
+  border-color: #ffaa00;
+  box-shadow: 0 0 15px #ffaa00;
+}
+.ability:not(.locked)#ability-wingman.feedback-active,
+.ability:not(.locked)#ability-wingman.duration-active {
+  border-color: #55ff00;
+  box-shadow: 0 0 15px #55ff00;
+}
+.ability:not(.locked)#ability-miniShip.feedback-active,
+.ability:not(.locked)#ability-miniShip.duration-active {
+  border-color: #00aaff;
+  box-shadow: 0 0 15px #00aaff;
+}
+.ability.feedback-active:hover,
+.ability.duration-active:hover {
+  transform: scale(1.1);
+}
+.ability.locked:hover {
+  transform: scale(1);
+  box-shadow: none;
+}
+
+
+/* File: ./css/ui.css */
+/* css/ui.css */
+
+/* ... existing styles for #gameUI, .ui-section, .powerBar, .powerFill, .max-level-blink ... */
+#gameUI {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  text-shadow: 0 0 5px #00ffff;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 8px 15px;
+  border-radius: 10px;
+  display: flex;
+  gap: 15px;
+  z-index: 5;
+  align-items: center;
+}
+.ui-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.4;
+}
+.powerBar {
+  margin-top: 3px;
+  height: 6px;
+  background: #333;
+  border-radius: 3px;
+  overflow: hidden;
+  width: 70px;
+}
+.powerFill {
+  height: 100%;
+  background: linear-gradient(to right, #00aaff, #00ffff);
+  width: 0%;
+  transition: width 0.3s;
+}
+.powerFill.max-level-blink {
+  animation: pulseBlueWhite 1s infinite alternate;
+}
+@keyframes pulseBlueWhite {
+  from {
+    background: #00ffff;
+    box-shadow: 0 0 3px #fff, 0 0 5px #00ffff;
+  }
+  to {
+    background: #ffffff;
+    box-shadow: 0 0 5px #fff, 0 0 10px #00ffff;
+  }
+}
+
+/* --- Unlock Bar (Repositioned Absolutely) --- */
+#unlockBarContainer {
+  position: absolute;
+  top: 75px;
+  right: 20px;
+  align-items: center;
+  width: 165px; /* Or adjust width as desired */
+  height: 8px;
+  background: rgba(50, 50, 50, 0.7); /* Slightly darker background */
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  z-index: 5; /* Same level as other UI elements */
+  box-sizing: border-box;
+  overflow: hidden;
+  /* Ensure it's visible */
+  display: block;
+  visibility: visible;
+  opacity: 1;
+}
+
+#unlockBarFill {
+  height: 100%;
+  background: linear-gradient(to right, #ffaa00, #ffff00);
+  border-radius: 3px; /* Slightly smaller than container */
+  width: 0%;
+  transition: width 0.5s ease-out;
+  position: relative;
+  box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Unlock Bar Glow/Blink Effects (No changes here) */
+#unlockBarFill.progress-glow {
+  animation: unlockGlowPulse 0.5s ease-out;
+}
+#unlockBarFill.max-level-blink {
+  animation: unlockMaxPulse 1.2s infinite alternate;
+}
+@keyframes unlockGlowPulse {
+  0% {
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.4), 0 0 3px #fff, 0 0 5px #ffff00;
+  }
+  50% {
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px #fff, 0 0 15px #ffffaa;
+  }
+  100% {
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.4), 0 0 3px #fff, 0 0 5px #ffff00;
+  }
+}
+@keyframes unlockMaxPulse {
+  from {
+    background: #ffff00;
+    box-shadow: inset 0 0 3px rgba(0, 0, 0, 0.4), 0 0 4px #fff, 0 0 8px #ffff00;
+  }
+  to {
+    background: #ffffff;
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.5), 0 0 8px #fff, 0 0 15px #ffffaa;
+  }
+}
+
+/* ... rest of ui.css (Screens, High Scores, Level Up, Timers) ... */
+.screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  z-index: 10;
+  text-align: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+.screen.hidden {
+  display: none;
+}
+.screen h1 {
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: #00ffff;
+  text-shadow: 0 0 10px #00ffff;
+}
+.screen h2 {
+  font-size: 24px;
+  color: #ffffaa;
+  margin-top: 30px;
+  margin-bottom: 10px;
+}
+.screen p {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+.screen button {
+  padding: 10px 20px;
+  font-size: 16px;
+  background: linear-gradient(to bottom, #00aaaa, #008888);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: all 0.3s;
+}
+.screen button:hover {
+  background: linear-gradient(to bottom, #00cccc, #00aaaa);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px #00ffff;
+}
+.instructions {
+  margin-top: 20px;
+  max-width: 550px;
+  line-height: 1.6;
+  font-size: 14px;
+}
+.highlight {
+  color: #00ffff;
+  font-weight: bold;
+}
+#highScoresList,
+#highScoresListGameOver {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-width: 300px;
+  width: 80%;
+}
+#highScoresList li,
+#highScoresListGameOver li {
+  background: rgba(255, 255, 255, 0.1);
+  margin-bottom: 8px;
+  padding: 8px 15px;
+  border-radius: 5px;
+  font-size: 16px;
+  display: flex;
+  justify-content: space-between;
+}
+#highScoresList li:nth-child(1),
+#highScoresListGameOver li:nth-child(1) {
+  background: rgba(255, 215, 0, 0.2);
+}
+#highScoresList li:nth-child(2),
+#highScoresListGameOver li:nth-child(2) {
+  background: rgba(192, 192, 192, 0.2);
+}
+#highScoresList li:nth-child(3),
+#highScoresListGameOver li:nth-child(3) {
+  background: rgba(205, 127, 50, 0.2);
+}
+.level-up-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 48px;
+  text-align: center;
+  text-shadow: 0 0 10px #00ffff;
+  opacity: 0;
+  z-index: 20;
+  pointer-events: none;
+  animation: levelUpFade 2s ease-out forwards;
+}
+@keyframes levelUpFade {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -40%);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  80% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -60%);
+  }
+}
+.ability-duration-timer {
+  position: absolute;
+  right: 20px;
+  font-size: 12px;
+  text-shadow: 0 0 5px currentColor;
+  z-index: 5;
+  display: none;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+#wingmanTimer {
+  bottom: 80px;
+  color: #55ff00;
+}
+#miniShipTimer {
+  bottom: 110px;
+  color: #00aaff;
+}
+.ability-duration-timer.visible {
+  display: block;
+}
+
+
+/* File: ./css/base.css */
+/* css/base.css */
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #000;
+  font-family: "Arial", sans-serif;
+  color: white;
+}
+
+#gameCanvas {
+  display: block;
+  background-color: #000; /* Fallback if starfield fails */
+  cursor: crosshair;
+  font-family: "Arial", sans-serif;
+}
+
+
+/* File: ./js/drawing.js */
+// js/drawing.js
+
+// --- Offscreen Canvas Buffers ---
+let starfieldBuffer = null;
+let playerBuffer = null;
+let playerInvincibleBuffer = null; // NEW buffer for invincible state
+
+function createOffscreenCanvas(width, height) {
+    const buffer = document.createElement('canvas');
+    buffer.width = width;
+    buffer.height = height;
+    return buffer;
+}
+
+// --- Starfield ---
+let stars = []; // Keep star data accessible
+
+function initStarfield(width, height) {
+    stars = [];
+    for (let i = 0; i < GAME_CONFIG.STAR_COUNT; i++) {
+        stars.push({
+            x: Math.random() * width,
+            y: Math.random() * height,
+            z: Math.random() * 10 + 1, // Depth
+            size: Math.random() * 3 + 1
+        });
+    }
+    // Create or resize buffer
+    if (!starfieldBuffer || starfieldBuffer.width !== width || starfieldBuffer.height !== height) {
+        starfieldBuffer = createOffscreenCanvas(width, height);
+    }
+    // Initial draw onto buffer
+    drawStarsToBuffer();
+}
+
+function drawStarsToBuffer() {
+    if (!starfieldBuffer) return;
+    const ctx = starfieldBuffer.getContext('2d');
+    const { width, height } = starfieldBuffer;
+
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, width, height);
+
+    for (const star of stars) {
+        const speedFactor = star.z * 0.15;
+        star.y += speedFactor;
+
+        if (star.y > height) {
+            star.y = -star.size; // Start slightly above
+            star.x = Math.random() * width;
+        }
+
+        const alpha = 0.2 + (star.z / 10) * 0.8;
+        ctx.globalAlpha = alpha;
+        const hue = 200 + star.z * 10;
+        ctx.fillStyle = `hsl(${hue}, 80%, 70%)`;
+        ctx.fillRect(star.x, star.y, star.size, star.size);
+    }
+    ctx.globalAlpha = 1; // Reset alpha
+}
+
+function drawStarfield(mainCtx) {
+    drawStarsToBuffer(); // Update buffer every frame for smooth parallax
+    if (starfieldBuffer) {
+        mainCtx.drawImage(starfieldBuffer, 0, 0);
+    }
+}
+
+// --- Player Ship Buffer ---
+function _drawPlayerShipShape(ctx, config, bufferWidth, bufferHeight, colorOverride = null) {
+    const centerX = bufferWidth / 2;
+    const centerY = bufferHeight / 2;
+    const mainColor = colorOverride || config.color;
+
+    // --- Ship Body ---
+    ctx.fillStyle = mainColor;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - config.height / 2);
+    ctx.lineTo(centerX - config.width / 3, centerY - config.height / 4);
+    ctx.lineTo(centerX - config.width / 2, centerY + config.height / 2);
+    ctx.lineTo(centerX, centerY + config.height / 3);
+    ctx.lineTo(centerX + config.width / 2, centerY + config.height / 2);
+    ctx.lineTo(centerX + config.width / 3, centerY - config.height / 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // --- Cockpit ---
+    if (!colorOverride) { // Don't draw detailed cockpit for simple invincible overlay
+        const gradient = ctx.createLinearGradient(centerX, centerY - config.height / 2, centerX, centerY);
+        gradient.addColorStop(0, config.cockpitGradient[0]);
+        gradient.addColorStop(1, config.cockpitGradient[1]);
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - config.height / 5, config.width / 4, 0, Math.PI * 2);
+        ctx.fill();
+    } else {
+         // Simple overlay cockpit
+         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+         ctx.beginPath();
+         ctx.arc(centerX, centerY - config.height / 5, config.width / 4, 0, Math.PI * 2);
+         ctx.fill();
+    }
+}
+
+
+function createPlayerBuffer(playerConfig) {
+    const bufferWidth = playerConfig.width + 10;
+    const bufferHeight = playerConfig.height + 10;
+    playerBuffer = createOffscreenCanvas(bufferWidth, bufferHeight);
+    const bufferCtx = playerBuffer.getContext('2d');
+    _drawPlayerShipShape(bufferCtx, playerConfig, bufferWidth, bufferHeight);
+
+    // NEW: Create invincible buffer (simple white overlay version)
+    playerInvincibleBuffer = createOffscreenCanvas(bufferWidth, bufferHeight);
+    const invincibleCtx = playerInvincibleBuffer.getContext('2d');
+    _drawPlayerShipShape(invincibleCtx, playerConfig, bufferWidth, bufferHeight, playerConfig.invincibleColor);
+}
+
+function drawPlayerFromBuffer(mainCtx, player) {
+    let bufferToDraw = playerBuffer; // Default buffer
+
+    // Check for invincibility and alternate drawing
+    if (player.invincible) {
+        // Simple flashing effect by alternating buffers or alpha
+        if (Math.floor(player.invincibilityTimer / 100) % 2 === 0) {
+            bufferToDraw = playerInvincibleBuffer;
+        }
+        // Or: use mainCtx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.02) * 0.2; before drawing playerBuffer
+    }
+
+    if (!bufferToDraw) {
+        createPlayerBuffer(GAME_CONFIG.player); // Create if missing
+        bufferToDraw = playerBuffer; // Fallback
+    }
+
+    if (bufferToDraw) {
+        mainCtx.drawImage(bufferToDraw,
+            player.x - bufferToDraw.width / 2,
+            player.y - bufferToDraw.height / 2
+        );
+
+        // Draw Dynamic Elements (Engine Glow) - Only if NOT invincible maybe?
+        // Or make engine glow less intense when invincible
+        if (!player.invincible) {
+            const engineIntensity = clamp(Math.abs(player.targetX - player.x) / (player.width * 2), 0, 1);
+            if (engineIntensity > 0.1) {
+                mainCtx.fillStyle = GAME_CONFIG.player.engineColor.replace(/,\s*[\d.]+\)$/, `, ${engineIntensity * 0.8})`);
+                mainCtx.beginPath();
+                mainCtx.moveTo(player.x - player.width / 4, player.y + player.height / 3);
+                mainCtx.lineTo(player.x, player.y + player.height / 2 + 3);
+                mainCtx.lineTo(player.x + player.width / 4, player.y + player.height / 3);
+                mainCtx.closePath();
+                mainCtx.fill();
+            }
+        }
+    }
+}
+
+
+// --- General Drawing Helpers ---
+
+function drawRect(ctx, x, y, width, height, color) {
+    ctx.fillStyle = color;
+    ctx.fillRect(x, y, width, height);
+}
+
+function drawCircle(ctx, x, y, radius, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+}
+
+function drawText(ctx, text, x, y, color, fontSize = 12, align = 'center', baseline = 'middle') {
+    ctx.fillStyle = color;
+    ctx.font = `${fontSize}px Arial`;
+    ctx.textAlign = align;
+    ctx.textBaseline = baseline;
+    ctx.fillText(text, x, y);
+}
+
+
+function drawHealthBar(ctx, x, y, width, height, currentHealth, maxHealth) {
+    const healthPercent = clamp(currentHealth / maxHealth, 0, 1);
+    if (healthPercent < 1) {
+        ctx.fillStyle = 'rgba(255, 0, 0, 0.6)';
+        ctx.fillRect(x, y, width, height);
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.8)';
+        ctx.fillRect(x, y, width * healthPercent, height);
+    }
+}
+
+function drawGenericShip(ctx, x, y, width, height, color, cockpitColor, engineColor) {
+     ctx.fillStyle = color;
+     ctx.beginPath();
+     ctx.moveTo(x, y - height / 2);
+     ctx.lineTo(x - width / 3, y - height / 4);
+     ctx.lineTo(x - width / 2, y + height / 2);
+     ctx.lineTo(x, y + height / 3);
+     ctx.lineTo(x + width / 2, y + height / 2);
+     ctx.lineTo(x + width / 3, y - height / 4);
+     ctx.closePath();
+     ctx.fill();
+
+     if (cockpitColor) {
+        ctx.fillStyle = cockpitColor;
+        ctx.beginPath();
+        ctx.arc(x, y - height / 3, width / 5, 0, Math.PI * 2);
+        ctx.fill();
+     }
+     if (engineColor) {
+        ctx.fillStyle = engineColor;
+        ctx.beginPath();
+        ctx.moveTo(x - width / 4, y + height / 3);
+        ctx.lineTo(x, y + height / 2);
+        ctx.lineTo(x + width / 4, y + height / 3);
+        ctx.closePath();
+        ctx.fill();
+     }
+}
+
+// NEW: Draw Item function
+function drawItem(ctx, item) {
+    const cfg = GAME_CONFIG.items;
+    let icon;
+    let color = 'white';
+
+    switch(item.itemType) {
+        case 'xp':
+            icon = '⭐'; // Or draw a coin/star shape
+            color = cfg.xpColor;
+            break;
+        case 'life':
+            icon = '❤️'; // Or draw a heart shape
+            color = cfg.lifeColor;
+            break;
+        case 'bomb':
+            icon = '💣'; // Or draw a bomb shape
+            color = cfg.bombColor;
+            break;
+        default:
+            icon = '?';
+    }
+
+    // Draw a simple circle background
+    drawCircle(ctx, item.x + item.width / 2, item.y + item.height / 2, item.width / 2 + 2, 'rgba(0,0,0,0.5)');
+    drawCircle(ctx, item.x + item.width / 2, item.y + item.height / 2, item.width / 2, color);
+
+    // Draw icon text inside
+    drawText(ctx, icon, item.x + item.width / 2, item.y + item.height / 2, 'black', cfg.size * 0.7);
+
+}
+
+
+/* File: ./js/game.js */
+// js/game.js
+
+class Game {
+  // --- Constructor and other methods mostly unchanged ---
+  constructor(canvas, ctx) {
+    this.canvas = canvas;
+    this.ctx = ctx;
+    this.width = canvas.width;
+    this.height = canvas.height;
+    this.running = false;
+    this.paused = false;
+    this.score = 0;
+    this.level = 1;
+    this.lastTimestamp = 0;
+    this.animationFrameId = null;
+    this.highScores = this.loadHighScores();
+    this.alienSpawnTimer = 0;
+    this.alienSpawnInterval = GAME_CONFIG.aliens.initialSpawnInterval;
+    this.alienBaseSpeed = GAME_CONFIG.aliens.initialSpeed;
+    this.alienBaseHealth = GAME_CONFIG.aliens.initialHealth;
+    this.minAliensOnScreen = GAME_CONFIG.aliens.minOnScreenBase;
+    this.uiManager = new UIManager();
+    this.abilityManager = new AbilityManager(this.uiManager);
+    this.particleManager = new ParticleManager();
+    this.player = new Player(this.width, this.height);
+    this.bullets = [];
+    this.rockets = [];
+    this.aliens = [];
+    this.wingmen = [];
+    this.miniShips = [];
+    this.items = [];
+    this.inputHandler = new InputHandler(
+      this.canvas,
+      this,
+      this.player,
+      this.abilityManager
+    );
+    initStarfield(this.width, this.height);
+    createPlayerBuffer(GAME_CONFIG.player);
+    this.gameLoop = this.gameLoop.bind(this);
+    window.addEventListener("resize", this.handleResize.bind(this));
+  }
+  start() {
+    this.resetGame();
+    this.running = true;
+    this.paused = false;
+    this.uiManager.hideAllScreens();
+    this.uiManager.resetUI(this.abilityManager.unlockedAbilities);
+    this.lastTimestamp = performance.now();
+    this.requestLoop();
+    console.log("Game Started");
+  }
+  gameOver() {
+    this.running = false;
+    this.cancelLoop();
+    this.saveHighScore(this.score);
+    this.highScores = this.loadHighScores();
+    this.uiManager.showGameOverScreen(
+      this.score,
+      this.player.maxReachedPower,
+      this.highScores
+    );
+    console.log("Game Over - Score:", this.score);
+  }
+  togglePause() {
+    if (!this.running) return;
+    this.paused = !this.paused;
+    if (this.paused) {
+      this.cancelLoop();
+      this.uiManager.showPauseScreen(this.score);
+    } else {
+      this.uiManager.hideAllScreens();
+      this.lastTimestamp = performance.now();
+      this.requestLoop();
+    }
+  }
+  resetGame() {
+    this.score = 0;
+    this.level = 1;
+    this.alienSpawnTimer = 0;
+    this.alienSpawnInterval = GAME_CONFIG.aliens.initialSpawnInterval;
+    this.alienBaseSpeed = GAME_CONFIG.aliens.initialSpeed;
+    this.alienBaseHealth = GAME_CONFIG.aliens.initialHealth;
+    this.minAliensOnScreen = GAME_CONFIG.aliens.minOnScreenBase;
+    this.bullets = [];
+    this.rockets = [];
+    this.aliens = [];
+    this.wingmen = [];
+    this.miniShips = [];
+    this.items = [];
+    this.particleManager.reset();
+    this.abilityManager.reset();
+    this.player.resetForNewGame(this.width, this.height);
+    this.uiManager.resetUI(this.abilityManager.unlockedAbilities);
+  }
+  handleResize() {
+    this.width = window.innerWidth;
+    this.height = window.innerHeight;
+    this.canvas.width = this.width;
+    this.canvas.height = this.height;
+    initStarfield(this.width, this.height);
+    this.player.y = this.height - GAME_CONFIG.player.initialYOffset;
+  }
+  loadHighScores() {
+    const scoresJSON = localStorage.getItem(
+      GAME_CONFIG.LOCAL_STORAGE_HISCORE_KEY
+    );
+    try {
+      const scores = scoresJSON ? JSON.parse(scoresJSON) : [];
+      return scores.sort((a, b) => b - a).slice(0, 3);
+    } catch (e) {
+      console.error("Error loading high scores:", e);
+      return [];
+    }
+  }
+  saveHighScore(newScore) {
+    if (newScore <= 0) return;
+    let scores = this.loadHighScores();
+    scores.push(newScore);
+    scores = scores.sort((a, b) => b - a).slice(0, 3);
+    try {
+      localStorage.setItem(
+        GAME_CONFIG.LOCAL_STORAGE_HISCORE_KEY,
+        JSON.stringify(scores)
+      );
+    } catch (e) {
+      console.error("Error saving high scores:", e);
+    }
+  }
+  requestLoop() {
+    this.animationFrameId = requestAnimationFrame(this.gameLoop);
+  }
+  cancelLoop() {
+    if (this.animationFrameId) cancelAnimationFrame(this.animationFrameId);
+    this.animationFrameId = null;
+  }
+  gameLoop(timestamp) {
+    if (!this.running || this.paused) return;
+    const deltaTime = Math.min(timestamp - this.lastTimestamp, 50);
+    this.lastTimestamp = timestamp;
+    this.update(deltaTime);
+    this.draw();
+    this.requestLoop();
+  }
+
+  update(deltaTime) {
+    this.player.update(deltaTime, this.width);
+    this.abilityManager.update(deltaTime);
+    this.particleManager.update(deltaTime);
+
+    this.updateEntities(deltaTime, this.bullets, this); // Pass gameRef to bullet update for target finding?
+    this.updateEntities(deltaTime, this.rockets);
+    this.updateEntities(deltaTime, this.aliens, this.height, this.player);
+    this.updateEntities(
+      deltaTime,
+      this.wingmen,
+      this.player,
+      this.aliens,
+      this
+    );
+    this.updateEntities(
+      deltaTime,
+      this.miniShips,
+      this.player,
+      this.aliens,
+      this
+    );
+    this.updateEntities(deltaTime, this.items);
+
+    this.spawnAliens(deltaTime);
+    this.handlePlayerShooting(performance.now());
+    this.checkCollisions();
+    this.checkActiveAbilities();
+    this.checkLevelUp();
+
+    this.bullets = this.bullets.filter((e) => e.active);
+    this.rockets = this.rockets.filter((e) => e.active);
+    this.aliens = this.aliens.filter((e) => e.active);
+    this.items = this.items.filter((e) => e.active);
+  }
+
+  updateEntities(deltaTime, entities, ...args) {
+    for (let i = entities.length - 1; i >= 0; i--) {
+      const entity = entities[i];
+      if (!entity.active) continue;
+      entity.update(deltaTime, ...args);
+      if (entity.isOffscreen(this.width, this.height)) {
+        if (entity instanceof Alien && entity.y > this.height) {
+          this.handleAlienLeak(entity, i);
+        } else if (
+          entity instanceof Bullet ||
+          entity instanceof Rocket ||
+          entity instanceof Item ||
+          entity instanceof Debris
+        ) {
+          entity.active = false;
+        }
+      }
+      if (entity instanceof Rocket && entity.shouldExplode(this.height)) {
+        this.handleRocketExplosion(entity);
+      }
+    }
+  }
+
+  spawnAliens(deltaTime) {
+    this.alienSpawnTimer += deltaTime;
+    const activeAlienCount = this.aliens.filter((a) => a.active).length;
+    const shouldSpawn =
+      this.alienSpawnTimer >= this.alienSpawnInterval ||
+      activeAlienCount < this.minAliensOnScreen;
+    if (shouldSpawn) {
+      this.alienSpawnTimer = 0;
+      const rand = Math.random();
+      let type = "scout";
+      let typeConfig = GAME_CONFIG.aliens.scout;
+      let baseHealth = this.alienBaseHealth;
+      let baseSpeed = this.alienBaseSpeed;
+      let pointsMultiplier = typeConfig.pointsMultiplier;
+      let specificConfig = GAME_CONFIG.aliens.scout;
+      const eliteChance =
+        GAME_CONFIG.aliens.spawnRatioElite * (1 + (this.level - 1) * 0.05);
+      const fighterChance = GAME_CONFIG.aliens.spawnRatioFighter;
+      if (rand < eliteChance && this.level > 3) {
+        type = "elite";
+        specificConfig = GAME_CONFIG.aliens.elite;
+      } else if (rand < eliteChance + fighterChance) {
+        type = "fighter";
+        specificConfig = GAME_CONFIG.aliens.fighter;
+      } else {
+        type = "scout";
+        specificConfig = GAME_CONFIG.aliens.scout;
+      }
+      typeConfig = specificConfig;
+      baseHealth *= typeConfig.healthMultiplier || 1.0;
+      baseSpeed *= typeConfig.speedMultiplier || 1.0;
+      pointsMultiplier = typeConfig.pointsMultiplier || 1.0;
+      const size = getRandom(
+        typeConfig.sizeMin,
+        typeConfig.sizeMin + typeConfig.sizeRange
+      );
+      const health =
+        baseHealth +
+        (this.level - 1) * 0.5 * (typeConfig.healthMultiplier || 1.0);
+      const speed =
+        baseSpeed +
+        (this.level - 1) * 0.05 * (typeConfig.speedMultiplier || 1.0);
+      const points = Math.floor(
+        (GAME_CONFIG.aliens.basePoints + health * 5) * pointsMultiplier
+      );
+      const color =
+        typeConfig.color ||
+        `hsl(${getRandom(
+          typeConfig.colorHueMin,
+          typeConfig.colorHueMin + typeConfig.colorHueRange
+        )}, ${typeConfig.saturation}, ${typeConfig.lightness})`;
+      this.aliens.push(
+        new Alien(
+          Math.random() * (this.width - size),
+          -size,
+          size,
+          size,
+          speed,
+          health,
+          points,
+          color,
+          type,
+          typeConfig,
+          this
+        )
+      );
+    }
+  }
+  spawnFighterWave(xPos) {
+    console.log("Scout leaked, spawning fighters!");
+    const count = GAME_CONFIG.aliens.scout.fighterSpawnCount || 1;
+    const typeConfig = GAME_CONFIG.aliens.fighter;
+    const size = getRandom(
+      typeConfig.sizeMin,
+      typeConfig.sizeMin + typeConfig.sizeRange
+    );
+    for (let i = 0; i < count; i++) {
+      const baseHealth =
+        this.alienBaseHealth * (typeConfig.healthMultiplier || 1.0);
+      const baseSpeed =
+        this.alienBaseSpeed * (typeConfig.speedMultiplier || 1.0);
+      const pointsMultiplier = typeConfig.pointsMultiplier || 1.0;
+      const health =
+        baseHealth +
+        (this.level - 1) * 0.5 * (typeConfig.healthMultiplier || 1.0);
+      const speed =
+        baseSpeed +
+        (this.level - 1) * 0.05 * (typeConfig.speedMultiplier || 1.0);
+      const points = Math.floor(
+        (GAME_CONFIG.aliens.basePoints + health * 5) * pointsMultiplier
+      );
+      const color = typeConfig.color;
+      const spawnX = clamp(
+        xPos + (i - (count - 1) / 2) * size * 1.5,
+        size / 2,
+        this.width - size * 1.5
+      );
+      this.aliens.push(
+        new Alien(
+          spawnX,
+          -size * (i + 1),
+          size,
+          size,
+          speed,
+          health,
+          points,
+          color,
+          "fighter",
+          typeConfig,
+          this
+        )
+      );
+    }
+  }
+  handlePlayerShooting(currentTime) {
+    if (this.player.autoFire && this.player.canShoot(currentTime)) {
+      this.player.recordShot(currentTime);
+      this.createPlayerBullets();
+      this.particleManager.createMuzzleFlash(
+        this.player.x,
+        this.player.y - this.player.height / 2,
+        this.player.bulletMode === "spread"
+          ? GAME_CONFIG.bullets.player.colorSpread
+          : GAME_CONFIG.bullets.player.colorParallel
+      );
+    }
+  }
+  createPlayerBullets() {
+    const pConfig = GAME_CONFIG.player;
+    const bConfig = GAME_CONFIG.bullets.player;
+    const power = this.player.bulletPowerLevel;
+    const damage =
+      bConfig.baseDamageMultiplier *
+      (power * 0.5 + 0.5) *
+      (this.player.bulletMode === "parallel"
+        ? bConfig.parallelDamageFactor
+        : 1);
+    if (this.player.bulletMode === "spread") {
+      const color = bConfig.colorSpread;
+      for (let i = 0; i < power; i++) {
+        const angleOffset =
+          (i - (power - 1) / 2) * bConfig.spreadAngleMultiplier;
+        const speedX = Math.sin(angleOffset) * 3;
+        this.bullets.push(
+          new Bullet(
+            this.player.x,
+            this.player.y - pConfig.height / 2,
+            { ...bConfig, color },
+            speedX,
+            bConfig.speedY,
+            damage,
+            "player"
+          )
+        );
+      }
+    } else {
+      const color = bConfig.colorParallel;
+      for (let i = 0; i < power; i++) {
+        const xOffset =
+          (i - (power - 1) / 2) * bConfig.parallelOffsetMultiplier;
+        this.bullets.push(
+          new Bullet(
+            this.player.x + xOffset,
+            this.player.y - pConfig.height / 2,
+            { ...bConfig, color },
+            0,
+            bConfig.speedY,
+            damage,
+            "player"
+          )
+        );
+      }
+    }
+  }
+  addAlienBullet(x, y, speedX, speedY, config) {
+    this.bullets.push(
+      new Bullet(x, y, config, speedX, speedY, config.damage, "alien")
+    );
+  }
+
+  // NEW: Implement MiniShip shooting
+  shootMiniShipRocket(miniShip, target) {
+    if (!target) return; // Need a target
+
+    const config = GAME_CONFIG.bullets.miniShipRocket;
+    const startX = miniShip.getCenterX();
+    const startY = miniShip.getCenterY();
+
+    // Initial velocity towards the target
+    const angle = Math.atan2(
+      target.getCenterY() - startY,
+      target.getCenterX() - startX
+    );
+    const speedX = Math.cos(angle) * config.speed;
+    const speedY = Math.sin(angle) * config.speed;
+
+    // Add the homing bullet
+    this.bullets.push(
+      new Bullet(
+        startX,
+        startY,
+        config,
+        speedX,
+        speedY,
+        config.damage,
+        "miniShip",
+        target // Pass target for homing
+      )
+    );
+
+    // Optional: Muzzle flash effect
+    this.particleManager.createMuzzleFlash(startX, startY, config.color, angle);
+  }
+
+  checkCollisions() {
+    // Bullets vs Aliens / Player
+    for (let i = this.bullets.length - 1; i >= 0; i--) {
+      const bullet = this.bullets[i];
+      if (!bullet.active) continue;
+
+      if (bullet.owner === "player" || bullet.owner === "miniShip") {
+        // Player or MiniShip bullets vs Aliens
+        for (let j = this.aliens.length - 1; j >= 0; j--) {
+          const alien = this.aliens[j];
+          if (!alien.active) continue;
+          if (checkCollision(bullet, alien)) {
+            const destroyed = alien.takeDamage(bullet.damage);
+            bullet.active = false;
+            this.particleManager.createExplosion(
+              bullet.getCenterX(),
+              bullet.getCenterY(),
+              alien.color,
+              3
+            );
+            if (destroyed) this.handleAlienDestroyed(alien, j, bullet.owner); // Track source
+            break;
+          }
+        }
+      } else if (bullet.owner === "alien") {
+        // Alien bullet vs Player
+        if (!this.player.invincible && checkCollision(bullet, this.player)) {
+          bullet.active = false;
+          this.handlePlayerHit("alien_bullet");
+          if (!this.running) break;
+        }
+      }
+    }
+    // Player vs Aliens
+    if (!this.player.invincible) {
+      for (let j = this.aliens.length - 1; j >= 0; j--) {
+        const alien = this.aliens[j];
+        if (!alien.active) continue;
+        const playerHitbox = {
+          x: this.player.x - this.player.width / 3,
+          y: this.player.y - this.player.height / 3,
+          width: this.player.width * 0.67,
+          height: this.player.height * 0.67,
+        };
+        if (checkCollision(playerHitbox, alien)) {
+          this.handlePlayerHit(alien, j);
+          if (!this.running) break;
+          if (this.player.invincible) break;
+        }
+      }
+    }
+    // Player vs Items
+    for (let k = this.items.length - 1; k >= 0; k--) {
+      const item = this.items[k];
+      if (!item.active) continue;
+      if (checkCollision(this.player, item)) {
+        item.applyEffect(this.player, this);
+        item.active = false;
+      }
+    }
+    // Debris vs Aliens
+    this.particleManager.checkDebrisCollisions(this.aliens, this);
+  }
+
+  handleAlienDestroyed(alien, index, source) {
+    this.player.addScore(alien.points, this);
+    // Only player kills count towards bullet level up
+    if (source === "player") {
+      this.player.increaseKillCount(this);
+    }
+    this.particleManager.createExplosion(
+      alien.getCenterX(),
+      alien.getCenterY(),
+      alien.color,
+      10 + alien.width * 0.2
+    );
+    this.particleManager.createAlienDebris(alien);
+    this.particleManager.createXpIndicator(
+      alien.getCenterX(),
+      alien.getCenterY(),
+      `+${alien.points}`
+    );
+    if (alien.shouldDropItem()) {
+      this.spawnItem(alien.getCenterX(), alien.getCenterY());
+    }
+    alien.active = false;
+  }
+  handleAlienLeak(alien, index) {
+    if (alien.alienType === "scout") {
+      this.spawnFighterWave(alien.getCenterX());
+      alien.active = false;
+    } else if (alien.alienType === "fighter" || alien.alienType === "elite") {
+      alien.active = false;
+      this.handlePlayerHit("alien_leak");
+    } else {
+      alien.active = false;
+    }
+  }
+  handlePlayerHit(source, alienIndex = -1) {
+    if (this.player.invincible) return;
+    if (source instanceof Alien && alienIndex !== -1) {
+      this.handleAlienDestroyed(source, alienIndex, "player_collision");
+    }
+    if (!this.player.loseLife()) {
+      this.particleManager.createExplosion(
+        this.player.x,
+        this.player.y,
+        this.player.color,
+        50
+      );
+      this.gameOver();
+    } else {
+      this.player.resetAfterDeath(this.width, this.height);
+      this.abilityManager.resetUnlocksOnDeath();
+      this.uiManager.updateLives(this.player.lives);
+      this.uiManager.updateBulletPower(this.player.bulletPowerLevel, 0, false);
+      this.uiManager.updateUnlockBar(0, this.abilityManager.unlockedAbilities);
+      this.particleManager.createExplosion(
+        this.player.x,
+        this.player.y,
+        this.player.color,
+        20
+      );
+      console.log("Player died, respawning. Lives left:", this.player.lives);
+    }
+  }
+  handleRocketExplosion(rocket) {
+    rocket.active = false;
+    const explosionX = rocket.getCenterX();
+    const explosionY = rocket.getCenterY();
+    this.particleManager.createExplosion(
+      explosionX,
+      explosionY,
+      rocket.color,
+      30 + rocket.width
+    );
+    for (let j = this.aliens.length - 1; j >= 0; j--) {
+      const alien = this.aliens[j];
+      if (!alien.active) continue;
+      const dist = distance({ x: explosionX, y: explosionY }, alien);
+      if (dist < rocket.explosionRadius) {
+        const destroyed = alien.takeDamage(rocket.damage);
+        if (destroyed) this.handleAlienDestroyed(alien, j, "rocket");
+      }
+    }
+  }
+  spawnItem(x, y) {
+    let type = "xp";
+    const rand = Math.random();
+    if (rand < 0.1 && this.player.lives < this.player.maxLives) {
+      type = "life";
+    } else if (rand < 0.2) {
+      type = "bomb";
+    } else {
+      type = "xp";
+    }
+    const value =
+      type === "xp"
+        ? getRandomInt(
+            GAME_CONFIG.items.xpValueMin,
+            GAME_CONFIG.items.xpValueMax
+          )
+        : 0;
+    this.items.push(
+      new Item(x, y, type, value)
+    ); /* console.log(`Item spawned: ${type}`); */
+  }
+  activateBomb(x, y) {
+    console.log("BOMB ACTIVATED!");
+    const cfg = GAME_CONFIG.items;
+    this.particleManager.createExplosion(
+      x,
+      y,
+      cfg.bombColor,
+      cfg.bombEffectRadius * 0.5
+    );
+    this.particleManager.createShockwave(x, y);
+    for (let j = this.aliens.length - 1; j >= 0; j--) {
+      const alien = this.aliens[j];
+      if (!alien.active || alien.y < 0) continue;
+      const destroyed = alien.takeDamage(cfg.bombDamage);
+      if (destroyed) {
+        this.handleAlienDestroyed(alien, j, "bomb");
+      } else {
+        this.particleManager.createExplosion(
+          alien.getCenterX(),
+          alien.getCenterY(),
+          alien.color,
+          5
+        );
+      }
+    }
+  }
+
+  addScore(amount) {
+    if (!this.running) return; // Don't add score if game isn't running
+    this.score += amount;
+    this.uiManager.updateScore(this.score);
+    // Check unlocks based on player's current life score
+    this.abilityManager.checkUnlocks(this.player.currentLifeScore);
+    // Update UI bar based on player's current life score
+    this.uiManager.updateUnlockBar(
+      this.player.currentLifeScore,
+      this.abilityManager.unlockedAbilities
+    );
+  }
+
+  checkLevelUp() {
+    const scoreNeeded =
+      GAME_CONFIG.levelScoreBase *
+      Math.pow(this.level, GAME_CONFIG.levelScoreExponent);
+    if (this.score >= scoreNeeded) {
+      this.level++;
+      this.uiManager.updateLevel(this.level);
+      this.uiManager.showLevelUpMessage(this.level);
+      const config = GAME_CONFIG.aliens;
+      this.alienSpawnInterval = Math.max(
+        this.alienSpawnInterval * config.levelSpawnIntervalMultiplier,
+        GAME_CONFIG.aliens.initialSpawnInterval *
+          config.levelSpawnIntervalMinFactor
+      );
+      this.minAliensOnScreen = Math.floor(
+        config.minOnScreenBase + this.level * config.minOnScreenLevelScale
+      );
+      console.log(
+        `Level Up! Lvl: ${this.level}, Min Aliens: ${
+          this.minAliensOnScreen
+        }, Spawn Interval: ${this.alienSpawnInterval.toFixed(0)}`
+      );
+    }
+  }
+  activateAbility(key) {
+    if (!this.abilityManager.isReady(key)) {
+      /* console.log(`Ability ${key} not ready or locked.`); */ return;
+    }
+    let activated = false;
+    switch (key) {
+      case "rocket":
+        if (this.abilityManager.activate(key)) {
+          this.rockets.push(new Rocket(this.player.x, this.player.y));
+          activated = true;
+        }
+        break;
+      case "wingman":
+        if (this.abilityManager.activate(key)) {
+          this.spawnWingmen();
+          activated = true;
+        }
+        break;
+      case "miniShip":
+        if (this.abilityManager.activate(key)) {
+          this.spawnMiniShips();
+          activated = true;
+        }
+        break;
+    } /* if (activated) console.log(`Ability Activated: ${key}`); */
+  }
+  togglePlayerBulletMode() {
+    const newMode = this.player.toggleBulletMode(this);
+    this.abilityManager.updateBulletModeVisuals(newMode);
+    this.abilityManager.triggerVisualFeedback("bulletMode");
+    this.particleManager.createPowerUpEffect(
+      this.player.x,
+      this.player.y,
+      newMode
+    );
+    console.log("Bullet mode swapped, power reset.");
+  }
+  spawnWingmen() {
+    this.wingmen = [];
+    const count = GAME_CONFIG.wingman.count;
+    const offsetX = GAME_CONFIG.wingman.offsetX;
+    for (let i = 0; i < count; i++) {
+      const sign = i % 2 === 0 ? -1 : 1;
+      this.wingmen.push(
+        new Wingman(this.player.x, this.player.y, sign * offsetX)
+      );
+      this.particleManager.createExplosion(
+        this.player.x + sign * offsetX,
+        this.player.y,
+        GAME_CONFIG.wingman.color,
+        15
+      );
+    }
+  }
+  spawnMiniShips() {
+    // Ensure MiniShips are properly cleared before spawning new ones
+    this.miniShips = [];
+    const count = GAME_CONFIG.miniShip.count;
+    for (let i = 0; i < count; i++) {
+      this.miniShips.push(new MiniShip(this.player.x, this.player.y, i));
+    }
+    this.particleManager.createExplosion(
+      this.player.x,
+      this.player.y,
+      GAME_CONFIG.miniShip.color,
+      25
+    );
+    console.log("Spawned MiniShips:", this.miniShips.length); // Debug log
+  }
+  checkActiveAbilities() {
+    // Check Wingmen duration
+    if (this.wingmen.length > 0 && !this.abilityManager.isActive("wingman")) {
+      console.log("Wingman duration ended."); // Debug log
+      this.particleManager.createExplosion(
+        this.player.x,
+        this.player.y,
+        GAME_CONFIG.wingman.color,
+        20
+      );
+      this.wingmen = [];
+    }
+    // Check MiniShips duration
+    if (
+      this.miniShips.length > 0 &&
+      !this.abilityManager.isActive("miniShip")
+    ) {
+      console.log("MiniShip duration ended."); // Debug log
+      this.particleManager.createExplosion(
+        this.player.x,
+        this.player.y,
+        GAME_CONFIG.miniShip.color,
+        20
+      );
+      this.miniShips = [];
+    }
+  }
+
+  draw() {
+    drawStarfield(this.ctx);
+    this.drawEntities(this.aliens);
+    this.drawEntities(this.rockets);
+    this.drawEntities(this.items);
+    this.drawEntities(this.wingmen);
+    this.drawEntities(this.miniShips);
+    this.player.draw(this.ctx);
+    this.drawEntities(this.bullets);
+    this.particleManager.draw(this.ctx);
+  }
+
+  drawEntities(entities) {
+    for (const entity of entities) {
+      if (entity.active) {
+        entity.draw(this.ctx);
+        // Particle hooks for trails
+        if (entity instanceof Bullet && entity.owner === "player") {
+          this.particleManager.createBulletTrail(
+            entity.getCenterX(),
+            entity.y + entity.height,
+            entity.color
+          );
+        } else if (entity instanceof Bullet && entity.owner === "miniShip") {
+          // Trail for miniship rockets
+          this.particleManager.createMiniRocketTrail(
+            entity.getCenterX(),
+            entity.getCenterY(),
+            entity.config.trailColor || entity.color
+          );
+        } else if (entity instanceof Rocket) {
+          this.particleManager.createRocketFlame(
+            entity.x,
+            entity.y + entity.height
+          );
+        }
+      }
+    }
+  }
+  isRunning() {
+    return this.running;
+  }
+  isPaused() {
+    return this.paused;
+  }
+}
+
+
+/* File: ./js/ui.js */
+// js/ui.js
+
+class UIManager {
+  constructor() {
+    // Cache UI elements
+    this.scoreElement = document.getElementById("score");
+    this.livesElement = document.getElementById("lives");
+    this.levelElement = document.getElementById("level");
+    this.bulletPowerElement = document.getElementById("bulletPower");
+    this.powerFillElement = document.getElementById("powerFill"); // Bullet power bar fill
+    this.finalScoreElement = document.getElementById("finalScore");
+    this.finalPowerElement = document.getElementById("finalPower");
+    this.pauseScoreElement = document.getElementById("pauseScore");
+
+    this.startScreen = document.getElementById("startScreen");
+    this.gameOverScreen = document.getElementById("gameOverScreen");
+    this.pauseScreen = document.getElementById("pauseScreen");
+
+    this.unlockBarContainer = document.getElementById("unlockBarContainer");
+    this.unlockBarFill = document.getElementById("unlockBarFill");
+    // this.unlockBarText removed
+
+    this.highScoresListElement = document.getElementById("highScoresList");
+    this.highScoresListElementGameOver = document.getElementById(
+      "highScoresListGameOver"
+    ); // Cache second list
+
+    this.durationTimers = {
+      wingman: document.getElementById("wingmanTimer"),
+      miniShip: document.getElementById("miniShipTimer"),
+    };
+
+    this.maxBulletsDisplay = GAME_CONFIG.MAX_BULLETS_DISPLAY;
+    this.feedbackTimeout = null;
+    this.nextUnlockScore = Infinity;
+    this.maxUnlockScore = 0;
+    this.lastUnlockBarWidth = -1; // Store previous width for glow effect
+    this.unlockGlowTimeout = null; // Timeout handle for glow effect
+
+    this.calculateUnlockScoreLimits();
+  }
+
+  calculateUnlockScoreLimits() {
+    const thresholds = Object.values(GAME_CONFIG.unlockSystem);
+    this.maxUnlockScore = thresholds
+      .filter((v) => typeof v === "number" && v > 0) // Ensure positive numbers
+      .reduce((max, val) => Math.max(max, val), 1); // Avoid division by zero if no unlocks
+  }
+
+  updateNextUnlockThreshold(unlockedAbilitiesSet) {
+    let nextScore = Infinity;
+    const thresholds = GAME_CONFIG.unlockSystem;
+    for (const key in GAME_CONFIG.abilities) {
+      const unlockKey = `${key}UnlockScore`;
+      if (thresholds[unlockKey] && !unlockedAbilitiesSet.has(key)) {
+        nextScore = Math.min(nextScore, thresholds[unlockKey]);
+      }
+    }
+    this.nextUnlockScore = nextScore;
+  }
+
+  // --- Score, Lives, Level ---
+  updateScore(score) {
+    this.scoreElement.textContent = score;
+  }
+  updateLives(lives) {
+    this.livesElement.textContent = lives;
+  }
+  updateLevel(level) {
+    this.levelElement.textContent = level;
+  }
+
+  // --- Bullet Power ---
+  updateBulletPower(level, killsProgress, isMaxLevel) {
+    // Added isMaxLevel flag
+    this.bulletPowerElement.textContent = `${level}/${this.maxBulletsDisplay}`;
+
+    let progressPercent = 0;
+    if (isMaxLevel) {
+      progressPercent = 100;
+      this.powerFillElement.classList.add("max-level-blink"); // Add blink class
+    } else {
+      progressPercent = (killsProgress / GAME_CONFIG.killsPerPowerUp) * 100;
+      this.powerFillElement.classList.remove("max-level-blink"); // Remove blink class
+    }
+    this.powerFillElement.style.width = `${clamp(progressPercent, 0, 100)}%`;
+  }
+
+  // --- Unlock Bar Update ---
+  updateUnlockBar(currentLifeScore, unlockedAbilitiesSet) {
+    this.updateNextUnlockThreshold(unlockedAbilitiesSet);
+
+    let progressPercent = 0;
+    const score = Math.max(0, currentLifeScore); // Ensure score isn't negative
+
+    if (this.nextUnlockScore !== Infinity) {
+      // Calculate progress based on the highest achieved threshold or 0
+      let previousThreshold = 0;
+      const achievedThresholds = Object.entries(GAME_CONFIG.unlockSystem)
+        .filter(
+          ([key, value]) =>
+            typeof value === "number" &&
+            unlockedAbilitiesSet.has(key.replace("UnlockScore", ""))
+        )
+        .map(([, value]) => value); // Get score values of unlocked abilities
+
+      if (achievedThresholds.length > 0) {
+        previousThreshold = Math.max(...achievedThresholds);
+      }
+
+      // Safety check in case maxUnlockScore is 0 or less
+      const safeMaxScore = Math.max(1, this.maxUnlockScore);
+      progressPercent = clamp((score / safeMaxScore) * 100, 0, 100);
+    } else {
+      // All abilities unlocked
+      progressPercent = 100;
+    }
+
+    const newWidth = `${progressPercent}%`;
+
+    // Apply width change
+    if (this.unlockBarFill.style.width !== newWidth) {
+      this.unlockBarFill.style.width = newWidth;
+
+      // Trigger glow effect only if width increased and not already maxed
+      if (progressPercent > this.lastUnlockBarWidth && progressPercent < 100) {
+        this.triggerUnlockGlow();
+      }
+      this.lastUnlockBarWidth = progressPercent;
+    }
+
+    // Handle max level blink for unlock bar
+    if (progressPercent >= 100) {
+      this.unlockBarFill.classList.add("max-level-blink");
+    } else {
+      this.unlockBarFill.classList.remove("max-level-blink");
+    }
+  }
+
+  // Trigger the glow animation on the unlock bar fill
+  triggerUnlockGlow() {
+    if (this.unlockGlowTimeout) clearTimeout(this.unlockGlowTimeout); // Clear existing timeout
+    this.unlockBarFill.classList.remove("progress-glow"); // Remove class first to re-trigger animation
+    void this.unlockBarFill.offsetWidth; // Force reflow to restart animation
+    this.unlockBarFill.classList.add("progress-glow");
+    this.unlockGlowTimeout = setTimeout(() => {
+      this.unlockBarFill.classList.remove("progress-glow");
+    }, GAME_CONFIG.unlockSystem.glowDuration); // Duration from config
+  }
+
+  // --- Screens & High Scores (No Change) ---
+  showStartScreen(highScores) {
+    this.displayHighScores(highScores);
+    this.startScreen.classList.remove("hidden");
+    this.gameOverScreen.classList.add("hidden");
+    this.pauseScreen.classList.add("hidden");
+  }
+  showGameOverScreen(score, maxPower, highScores) {
+    this.finalScoreElement.textContent = score;
+    this.finalPowerElement.textContent = `${maxPower}/${this.maxBulletsDisplay}`;
+    this.displayHighScores(highScores);
+    this.startScreen.classList.add("hidden");
+    this.gameOverScreen.classList.remove("hidden");
+    this.pauseScreen.classList.add("hidden");
+  }
+  showPauseScreen(score) {
+    this.pauseScoreElement.textContent = score;
+    this.startScreen.classList.add("hidden");
+    this.gameOverScreen.classList.add("hidden");
+    this.pauseScreen.classList.remove("hidden");
+  }
+  hideAllScreens() {
+    this.startScreen.classList.add("hidden");
+    this.gameOverScreen.classList.add("hidden");
+    this.pauseScreen.classList.add("hidden");
+  }
+  displayHighScores(scores) {
+    const displayList = (listElement) => {
+      if (!listElement) return;
+      listElement.innerHTML = "";
+      if (!scores || scores.length === 0) {
+        listElement.innerHTML = "<li>No scores yet!</li>";
+        return;
+      }
+      scores.forEach((score, index) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span>#${index + 1}</span><span>${score}</span>`;
+        listElement.appendChild(li);
+      });
+    };
+    displayList(this.highScoresListElement);
+    displayList(this.highScoresListElementGameOver);
+  }
+
+  // --- Abilities UI (No Change) ---
+  updateAbilityCooldownVisual(element, cooldownPercent, isOnCooldown) {
+    if (!element || element.classList.contains("locked")) return;
+    const cooldownOverlay = element.querySelector(".ability-cooldown");
+    if (cooldownOverlay) {
+      cooldownOverlay.style.height = `${clamp(cooldownPercent * 100, 0, 100)}%`;
+    }
+    element.classList.toggle("on-cooldown", isOnCooldown);
+  }
+  updateAbilityActiveState(element, isActive) {
+    if (!element || element.classList.contains("locked")) return;
+    element.classList.toggle("duration-active", isActive);
+  }
+  updateAbilityLockState(element, isLocked) {
+    if (!element) return;
+    element.classList.toggle("locked", isLocked);
+    if (isLocked) {
+      element.classList.remove(
+        "on-cooldown",
+        "duration-active",
+        "feedback-active",
+        "ready-flash",
+        "parallel-active"
+      );
+      const cooldownOverlay = element.querySelector(".ability-cooldown");
+      if (cooldownOverlay) cooldownOverlay.style.height = "0%";
+    }
+  }
+  triggerAbilityFeedback(element) {
+    if (!element || element.classList.contains("locked")) return;
+    element.classList.add("feedback-active");
+    if (this.feedbackTimeout) clearTimeout(this.feedbackTimeout);
+    this.feedbackTimeout = setTimeout(() => {
+      element.classList.remove("feedback-active");
+    }, GAME_CONFIG.abilities.feedbackDuration);
+  }
+  triggerAbilityReadyFlash(element) {
+    if (!element || element.classList.contains("locked")) return;
+    element.classList.add("ready-flash");
+    setTimeout(() => {
+      element.classList.remove("ready-flash");
+    }, GAME_CONFIG.abilities.readyFlashDuration);
+  }
+  updateBulletModeIcon(element, mode) {
+    if (!element || element.classList.contains("locked")) return;
+    element.classList.toggle("parallel-active", mode === "parallel");
+  }
+
+  // --- Duration Timers (No Change) ---
+  updateDurationTimer(timerElement, durationMs, isVisible) {
+    if (!timerElement) return;
+    const shouldShow = isVisible && durationMs > 0;
+    timerElement.classList.toggle("visible", shouldShow);
+    if (shouldShow) {
+      const seconds = Math.ceil(durationMs / 1000);
+      const baseText =
+        timerElement.id === "wingmanTimer" ? "Wingmen: " : "Mini Ships: ";
+      timerElement.textContent = `${baseText}${seconds}s`;
+    }
+  }
+
+  // --- Level Up Message (No Change) ---
+  showLevelUpMessage(level) {
+    const levelUpDiv = document.createElement("div");
+    levelUpDiv.className = "level-up-message";
+    levelUpDiv.textContent = `LEVEL ${level}`;
+    document.body.appendChild(levelUpDiv);
+    setTimeout(() => {
+      levelUpDiv.remove();
+    }, GAME_CONFIG.levelUpMessageDuration);
+  }
+
+  // --- Reset UI State ---
+  resetUI(unlockedAbilitiesSet) {
+    this.updateScore(0);
+    this.updateLives(GAME_CONFIG.player.initialLives);
+    this.updateLevel(1);
+    this.updateBulletPower(1, 0, false); // Start not maxed
+    this.updateUnlockBar(0, unlockedAbilitiesSet);
+    this.unlockBarFill.classList.remove("max-level-blink"); // Ensure blink off
+    this.lastUnlockBarWidth = 0; // Reset last width
+    if (this.durationTimers.wingman)
+      this.durationTimers.wingman.classList.remove("visible");
+    if (this.durationTimers.miniShip)
+      this.durationTimers.miniShip.classList.remove("visible");
+  }
+}
+
+
+/* File: ./js/abilities.js */
+// js/abilities.js
+
+class AbilityManager {
+    constructor(uiManager) {
+        this.uiManager = uiManager;
+        this.abilities = {};
+        this.unlockThresholds = {}; // Store score needed to unlock
+        this.unlockedAbilities = new Set(); // Track currently unlocked abilities (for this life)
+        this.initializeAbilities();
+    }
+
+    initializeAbilities() {
+        const config = GAME_CONFIG.abilities;
+        const unlockConfig = GAME_CONFIG.unlockSystem;
+
+        for (const key in config) {
+            if (!GAME_CONFIG.abilities.hasOwnProperty(key)) continue; // Ensure it's an ability config
+
+            this.abilities[key] = {
+                key: key,
+                cooldown: 0,
+                maxCooldown: config[key].maxCooldown,
+                duration: 0,
+                maxDuration: config[key].duration,
+                ready: false, // Start locked abilities as not ready
+                active: false,
+                element: document.getElementById(`ability-${key}`),
+                timerElement: document.getElementById(`${key}Timer`),
+            };
+            // Store unlock threshold if it exists
+            const unlockKey = `${key}UnlockScore`;
+            if (unlockConfig[unlockKey]) {
+                this.unlockThresholds[key] = unlockConfig[unlockKey];
+            } else {
+                 this.unlockedAbilities.add(key); // Assume unlocked if no threshold (like bulletMode)
+                 this.abilities[key].ready = true; // Make ready if unlocked by default
+            }
+        }
+        this.updateAllUI(); // Initial UI setup (shows locked state)
+    }
+
+    // NEW: Check unlock status based on current life score
+    checkUnlocks(currentLifeScore) {
+        let newlyUnlocked = false;
+        for (const key in this.unlockThresholds) {
+            if (!this.unlockedAbilities.has(key) && currentLifeScore >= this.unlockThresholds[key]) {
+                this.unlockedAbilities.add(key);
+                this.abilities[key].ready = true; // Becomes ready immediately upon unlock
+                this.abilities[key].cooldown = 0; // Ensure cooldown is zeroed
+                newlyUnlocked = true;
+                 console.log(`Ability Unlocked: ${key}`);
+                 // Optional: Add a visual/sound effect for unlock
+            }
+        }
+        if (newlyUnlocked) {
+            this.updateAllUI(); // Update UI to show unlocked state
+        }
+    }
+
+    isUnlocked(key) {
+        return this.unlockedAbilities.has(key);
+    }
+
+    isReady(key) {
+        const ability = this.abilities[key];
+        // Must be unlocked AND cooldown ready
+        return ability && this.isUnlocked(key) && ability.ready;
+    }
+
+    isActive(key) {
+        // Must be unlocked AND duration active
+        const ability = this.abilities[key];
+        return ability && this.isUnlocked(key) && ability.active;
+    }
+
+    activate(key) {
+        const ability = this.abilities[key];
+        // Check if ready (which includes unlocked check)
+        if (!ability || !this.isReady(key)) return false;
+
+        if (key === 'bulletMode') {
+            this.triggerVisualFeedback(key);
+            return true; // Bullet mode doesn't have cooldown/duration here
+        }
+
+        ability.ready = false;
+        ability.cooldown = ability.maxCooldown;
+
+        if (ability.maxDuration > 0) {
+            ability.active = true;
+            ability.duration = ability.maxDuration;
+            if (ability.timerElement) {
+                this.uiManager.updateDurationTimer(ability.timerElement, ability.duration, true);
+            }
+        }
+
+        this.triggerVisualFeedback(key);
+        this.updateAbilityUI(key);
+
+        return true;
+    }
+
+    update(deltaTime) {
+        let uiNeedsUpdate = false;
+        for (const key in this.abilities) {
+            const ability = this.abilities[key];
+
+            // Don't update cooldown/duration if not unlocked (unless it's bullet mode)
+            if (!this.isUnlocked(key) && key !== 'bulletMode') continue;
+
+            if (!ability.ready) {
+                ability.cooldown -= deltaTime;
+                if (ability.cooldown <= 0) {
+                    ability.cooldown = 0;
+                    ability.ready = true;
+                    if (this.isUnlocked(key)) { // Only flash if unlocked
+                       this.uiManager.triggerAbilityReadyFlash(ability.element);
+                    }
+                }
+                uiNeedsUpdate = true;
+            }
+
+            if (ability.active) {
+                ability.duration -= deltaTime;
+                if (ability.timerElement) {
+                   this.uiManager.updateDurationTimer(ability.timerElement, ability.duration);
+                }
+                if (ability.duration <= 0) {
+                    ability.duration = 0;
+                    ability.active = false;
+                     if (ability.timerElement) {
+                        this.uiManager.updateDurationTimer(ability.timerElement, 0, false);
+                     }
+                    uiNeedsUpdate = true;
+                }
+            }
+        }
+
+        if (uiNeedsUpdate) {
+            this.updateAllUI();
+        }
+    }
+
+    triggerVisualFeedback(key) {
+        const ability = this.abilities[key];
+        if (ability && ability.element && this.isUnlocked(key)) { // Only feedback if unlocked
+            this.uiManager.triggerAbilityFeedback(ability.element);
+        }
+        if (key === 'bulletMode') {
+             this.uiManager.updateBulletModeIcon( /* need current mode */ );
+        }
+    }
+
+     updateBulletModeVisuals(mode) {
+        const ability = this.abilities['bulletMode'];
+        if (ability && ability.element) {
+           this.uiManager.updateBulletModeIcon(ability.element, mode);
+        }
+    }
+
+    updateAbilityUI(key) {
+        const ability = this.abilities[key];
+        if (!ability || !ability.element) return;
+
+        const isLocked = !this.isUnlocked(key);
+        this.uiManager.updateAbilityLockState(ability.element, isLocked);
+
+        if (!isLocked) {
+            const cooldownPercent = ability.maxCooldown > 0 ? (ability.cooldown / ability.maxCooldown) : 0;
+            this.uiManager.updateAbilityCooldownVisual(ability.element, cooldownPercent, !ability.ready);
+            this.uiManager.updateAbilityActiveState(ability.element, ability.active);
+        } else {
+             // Ensure locked state visuals override others
+             this.uiManager.updateAbilityCooldownVisual(ability.element, 0, false); // Hide cooldown overlay
+             this.uiManager.updateAbilityActiveState(ability.element, false); // Hide active state
+        }
+    }
+
+    updateAllUI() {
+        for (const key in this.abilities) {
+            this.updateAbilityUI(key);
+        }
+        // Ensure bullet mode visual is correct initially/on reset
+        this.updateBulletModeVisuals('spread');
+    }
+
+    // Reset unlocks when player dies
+    resetUnlocksOnDeath() {
+        this.unlockedAbilities.clear();
+        // Add back abilities that are unlocked by default (like bulletMode)
+        for (const key in this.abilities) {
+            if (!this.unlockThresholds[key]) {
+                 this.unlockedAbilities.add(key);
+                 this.abilities[key].ready = true; // Ensure default unlocked are ready
+                 this.abilities[key].cooldown = 0;
+                 this.abilities[key].active = false;
+            } else {
+                // Explicitly mark others as not ready if locked again
+                 this.abilities[key].ready = false;
+                 this.abilities[key].cooldown = 0; // Reset cooldown even if locked
+                 this.abilities[key].active = false;
+                 this.abilities[key].duration = 0;
+            }
+        }
+        this.updateAllUI(); // Update visuals to locked state
+    }
+
+    // Full reset for new game
+    reset() {
+         this.resetUnlocksOnDeath(); // Start by resetting unlocks
+         // Ensure all timers/cooldowns are zeroed
+         for (const key in this.abilities) {
+             const ability = this.abilities[key];
+             ability.cooldown = 0;
+             ability.duration = 0;
+             ability.active = false;
+             if (ability.timerElement) {
+                 this.uiManager.updateDurationTimer(ability.timerElement, 0, false);
+             }
+             // Readiness is handled by resetUnlocksOnDeath
+         }
+         this.updateAllUI();
+    }
+}
+
+
+/* File: ./js/config.js */
+// js/config.js
+
+const GAME_CONFIG = {
+  // General
+  STAR_COUNT: 350,
+  MAX_BULLETS_DISPLAY: 5,
+  LOCAL_STORAGE_HISCORE_KEY: "spaceDefenderHighScores",
+  INVINCIBILITY_DURATION: 2500,
+
+  // Player
+  player: {
+    baseSpeed: 8,
+    width: 30,
+    height: 40,
+    initialYOffset: 50,
+    shootDelay: 300,
+    color: "#00ffff",
+    invincibleColor: "rgba(255, 255, 255, 0.5)",
+    cockpitGradient: ["white", "blue"],
+    engineColor: "rgba(255, 100, 0, 0.8)",
+    initialLives: 3,
+    maxLives: 5,
+  },
+
+  // Bullets
+  bullets: {
+    player: {
+      width: 3,
+      height: 15,
+      speedY: -10,
+      spreadAngleMultiplier: 0.3,
+      parallelOffsetMultiplier: 15,
+      colorSpread: "#00ffff",
+      colorParallel: "#00ff00",
+      baseDamageMultiplier: 1,
+      parallelDamageFactor: 0.5,
+    },
+    alienFighter: {
+      width: 5,
+      height: 10,
+      speed: 5,
+      color: "#ff4444",
+      damage: 1,
+    },
+    miniShipRocket: {
+      width: 5,
+      height: 12,
+      speed: 9,
+      color: "#99ddff", // Lighter blue
+      damage: 2.5, // Small rockets, decent damage
+      turnRate: 0.15, // How fast they can turn towards target (radians per frame approx)
+      trailColor: "#ccf0ff",
+    },
+  },
+
+  // Rockets (Player Ability)
+  rocket: {
+    width: 15,
+    height: 30,
+    speedY: -8,
+    color: "#ff5500",
+    explosionRadius: 100,
+    damage: 5,
+    flameColor: "#ffaa00",
+  },
+
+  // Wingmen
+  wingman: {
+    count: 2,
+    width: 15,
+    height: 20,
+    offsetX: 60,
+    offsetY: 0,
+    color: "#55ff00",
+    // shootDelay: 800, // No shooting logic currently active
+    followLerpFactor: 0.1,
+    cockpitColor: "rgba(255, 255, 255, 0.2)",
+    engineColor: "rgba(150, 255, 100, 0.2)",
+  },
+
+  // Mini Ships
+  miniShip: {
+    count: 3,
+    width: 10,
+    height: 15,
+    color: "#00aaff",
+    shootDelay: 600, // Time between firing bursts
+    burstCount: 1, // How many rockets per ship per burst
+    maxTargets: 5, // Max simultaneous targets for the group
+    followLerpFactor: 0.05,
+    cockpitColor: "rgba(255, 255, 255, 0.2)",
+    engineColor: "rgba(100, 200, 255, 0.2)",
+    spreadOffset: 40,
+    returnOffsetY: 50,
+  },
+
+  // Aliens
+  aliens: {
+    initialSpawnInterval: 1800,
+    initialSpeed: 0.6,
+    initialHealth: 1.8,
+    minOnScreenBase: 3,
+    minOnScreenLevelScale: 0.8,
+    levelSpawnIntervalMultiplier: 0.985,
+    levelSpawnIntervalMinFactor: 0.85,
+    levelSpeedMultiplier: 1.06,
+    levelSpeedMinFactor: 1.04,
+    levelHealthMultiplier: 1.07,
+    levelHealthMinFactor: 1.04,
+    basePoints: 10,
+    healthBarHeight: 4,
+    healthBarYOffset: 8,
+    scout: {
+      colorHueMin: 300,
+      colorHueRange: 60,
+      saturation: "70%",
+      lightness: "50%",
+      sizeMin: 20,
+      sizeRange: 25,
+      healthMultiplier: 0.9,
+      speedMultiplier: 1.1,
+      pointsMultiplier: 0.8,
+      fighterSpawnCount: 2,
+      dropChance: 0.05,
+    },
+    fighter: {
+      color: "hsl(0, 80%, 60%)",
+      sizeMin: 25,
+      sizeRange: 30,
+      healthMultiplier: 1.2,
+      speedMultiplier: 0.9,
+      pointsMultiplier: 1.2,
+      hoverYThreshold: 0.15,
+      hoverDuration: 3000,
+      shootDelay: 1500,
+      dropChance: 0.1,
+    },
+    elite: {
+      color: "hsl(270, 80%, 60%)",
+      sizeMin: 35,
+      sizeRange: 35,
+      healthMultiplier: 3.5,
+      speedMultiplier: 0.7,
+      pointsMultiplier: 3.0,
+      hoverYThreshold: 0.18,
+      hoverDuration: 5000,
+      shootDelay: 300, // Stays higher longer
+      bulletSpeedMultiplier: 1.2,
+      dropChance: 0.25,
+    },
+    spawnRatioScout: 0.6,
+    spawnRatioFighter: 0.35,
+    spawnRatioElite: 0.05,
+  },
+
+  // Power Ups / Leveling
+  killsPerPowerUp: 5,
+  maxBulletPowerLevel: 5,
+  levelScoreBase: 1500,
+  levelScoreExponent: 1.15,
+
+  // --- Ability Unlock System ---
+  unlockSystem: {
+    // Bar color defined in CSS now
+    rocketUnlockScore: 500,
+    wingmanUnlockScore: 1500,
+    miniShipUnlockScore: 3000,
+    glowDuration: 500, // ms for the glow effect on unlock bar progress
+  },
+
+  // Items / Drops
+  items: {
+    xpValueMin: 50,
+    xpValueMax: 250,
+    dropSpeedY: 2,
+    size: 20,
+    xpColor: "#000000",
+    lifeColor: "#ffffff",
+    bombColor: "#ffff00",
+    lifeMaxValue: 1,
+    bombEffectRadius: 400,
+    bombDamage: 50,
+  },
+
+  // Particles & Effects
+  particles: {
+    explosionFactor: 0.8,
+    muzzleFlashCount: 8,
+    bulletTrailCount: 1,
+    engineTrailCount: 2,
+    debrisCountFactor: 0.2,
+    debrisBaseLife: 100,
+    debrisLifeRange: 100,
+    debrisDamage: 1,
+    debrisSpeedFactor: 6,
+    debrisRotationFactor: 0.1,
+    debrisSizeMin: 4,
+    debrisSizeRange: 8,
+    shockwaveCount: 10,
+    shockwaveMinRadius: 5,
+    shockwaveRadiusRange: 15,
+    shockwaveLife: 40 * 16, // ms
+    shockwaveDecay: 0.85, // (Handled by alpha fade now)
+    shockwaveSpeedFactor: 10,
+    baseDecay: 0.9, // (Handled by linear time decay now)
+    baseLife: 20 * 16, // ms
+    lifeRange: 30 * 16, // ms
+    xpIndicator: {
+      life: 1500, // Longer life for bounce
+      speedY: -1.8, // Faster upward initial speed
+      gravity: 0.05, // Slight downward pull for bounce effect
+      fontSize: 22, // Slightly larger
+      color: "#ffffaa",
+    },
+    miniRocketTrail: {
+      // Config for miniship rocket trails
+      life: 150, // Short life
+      radiusMin: 1,
+      radiusMax: 2,
+      speedY: 0.5, // Slight drift
+    },
+    bombExplosionColor: "#ffcc00",
+  },
+
+  // Abilities (Cooldowns/Durations)
+  abilities: {
+    rocket: { maxCooldown: 5000, duration: 0 },
+    wingman: { maxCooldown: 15000, duration: 10000 },
+    miniShip: { maxCooldown: 25000, duration: 10000 },
+    feedbackDuration: 500,
+    readyFlashDuration: 1500,
+  },
+
+  // UI
+  levelUpMessageDuration: 2000,
+};
+
+
+/* File: ./js/entities.js */
+// js/entities.js
+
+// --- Base Class (No Change) ---
+class Entity {
+  /* ... */
+  constructor(x, y, width, height, color) {
+    this.x = x;
+    this.y = y;
+    this.width = width;
+    this.height = height;
+    this.color = color;
+    this.active = true;
+  }
+  isOffscreen(canvasWidth, canvasHeight, margin = 50) {
+    return (
+      this.x < -margin ||
+      this.x > canvasWidth + margin ||
+      this.y < -margin ||
+      this.y > canvasHeight + margin + this.height
+    );
+  }
+  getCenterX() {
+    return this.x + this.width / 2;
+  }
+  getCenterY() {
+    return this.y + this.height / 2;
+  }
+}
+
+// --- Player Class (No Change) ---
+class Player extends Entity {
+  /* ... */
+  constructor(canvasWidth, canvasHeight) {
+    const config = GAME_CONFIG.player;
+    super(
+      canvasWidth / 2,
+      canvasHeight - config.initialYOffset,
+      config.width,
+      config.height,
+      config.color
+    );
+    this.baseSpeed = config.baseSpeed;
+    this.speed = this.baseSpeed;
+    this.initialLives = config.initialLives;
+    this.lives = this.initialLives;
+    this.maxLives = config.maxLives;
+    this.targetX = this.x;
+    this.lastShotTime = 0;
+    this.shootDelay = config.shootDelay;
+    this.autoFire = true;
+    this.bulletPowerLevel = 1;
+    this.bulletMode = "spread";
+    this.kills = 0;
+    this.maxReachedPower = 1;
+    this.currentLifeScore = 0;
+    this.invincible = false;
+    this.invincibilityTimer = 0;
+    this.invincibilityDuration = GAME_CONFIG.INVINCIBILITY_DURATION;
+  }
+  update(deltaTime, canvasWidth) {
+    if (this.invincible) {
+      this.invincibilityTimer -= deltaTime;
+      if (this.invincibilityTimer <= 0) {
+        this.invincible = false;
+        this.invincibilityTimer = 0;
+      }
+    }
+    const dx = this.targetX - this.x;
+    this.speed = this.baseSpeed;
+    this.x += dx * 0.15;
+    this.x = clamp(this.x, this.width / 2, canvasWidth - this.width / 2);
+  }
+  draw(ctx) {
+    drawPlayerFromBuffer(ctx, this);
+  }
+  canShoot(currentTime) {
+    return currentTime - this.lastShotTime >= this.shootDelay;
+  }
+  recordShot(currentTime) {
+    this.lastShotTime = currentTime;
+  }
+  addScore(amount, game) {
+    this.currentLifeScore += amount;
+    game.addScore(amount);
+  }
+  increaseKillCount(game) {
+    this.kills++;
+    const newPowerLevel = Math.min(
+      Math.floor(this.kills / GAME_CONFIG.killsPerPowerUp) + 1,
+      GAME_CONFIG.maxBulletPowerLevel
+    );
+    if (newPowerLevel > this.bulletPowerLevel) {
+      this.bulletPowerLevel = newPowerLevel;
+      this.maxReachedPower = Math.max(
+        this.maxReachedPower,
+        this.bulletPowerLevel
+      );
+      game.particleManager.createPowerUpEffect(this.x, this.y, this.bulletMode);
+      game.uiManager.updateBulletPower(
+        this.bulletPowerLevel,
+        0,
+        this.bulletPowerLevel === GAME_CONFIG.maxBulletPowerLevel
+      );
+    } else if (this.bulletPowerLevel < GAME_CONFIG.maxBulletPowerLevel) {
+      game.uiManager.updateBulletPower(
+        this.bulletPowerLevel,
+        this.kills % GAME_CONFIG.killsPerPowerUp,
+        false
+      );
+    }
+  }
+  toggleBulletMode(game) {
+    this.bulletMode = this.bulletMode === "spread" ? "parallel" : "spread";
+    this.bulletPowerLevel = 1;
+    this.kills = 0;
+    this.maxReachedPower = Math.max(this.maxReachedPower, 1);
+    game.uiManager.updateBulletPower(this.bulletPowerLevel, 0, false);
+    return this.bulletMode;
+  }
+  loseLife() {
+    if (this.invincible) return true;
+    this.lives--;
+    this.currentLifeScore = 0;
+    this.bulletPowerLevel = 1;
+    this.kills = 0;
+    if (this.lives > 0) {
+      this.becomeInvincible();
+    }
+    return this.lives > 0;
+  }
+  gainLife() {
+    if (this.lives < this.maxLives) {
+      this.lives++;
+      return true;
+    }
+    return false;
+  }
+  becomeInvincible() {
+    this.invincible = true;
+    this.invincibilityTimer = this.invincibilityDuration;
+  }
+  resetForNewGame(canvasWidth, canvasHeight) {
+    const config = GAME_CONFIG.player;
+    this.x = canvasWidth / 2;
+    this.y = canvasHeight - config.initialYOffset;
+    this.targetX = this.x;
+    this.lives = this.initialLives;
+    this.bulletPowerLevel = 1;
+    this.kills = 0;
+    this.maxReachedPower = 1;
+    this.bulletMode = "spread";
+    this.autoFire = true;
+    this.lastShotTime = 0;
+    this.currentLifeScore = 0;
+    this.invincible = false;
+    this.invincibilityTimer = 0;
+  }
+  resetAfterDeath(canvasWidth, canvasHeight) {
+    const config = GAME_CONFIG.player;
+    this.x = canvasWidth / 2;
+    this.y = canvasHeight - config.initialYOffset;
+    this.targetX = this.x;
+    this.bulletPowerLevel = 1;
+    this.kills = 0;
+    this.currentLifeScore = 0;
+    this.lastShotTime = 0;
+    this.becomeInvincible();
+  }
+}
+
+// --- Bullet Class --- (Add seeking behavior for MiniShip Rockets)
+class Bullet extends Entity {
+  constructor(
+    x,
+    y,
+    config,
+    speedX = 0,
+    speedY,
+    damage,
+    owner = "player",
+    target = null
+  ) {
+    // Added owner & optional target
+    super(x - config.width / 2, y, config.width, config.height, config.color);
+    this.speedX = speedX;
+    this.speedY = speedY;
+    this.damage = damage;
+    this.owner = owner;
+    this.config = config; // Store config for properties like turnRate
+
+    // Homing properties
+    this.isHoming = owner === "miniShip"; // Only miniship rockets home
+    this.target = target; // The alien entity to home towards
+    this.turnRate = config.turnRate || 0; // Radians per update step (approx)
+  }
+
+  update(deltaTime, gameRef) {
+    // Needs gameRef potentially to find new targets?
+    const speedFactor = deltaTime / 16.67;
+
+    if (this.isHoming) {
+      if (this.target && this.target.active) {
+        // Calculate direction to target
+        const targetX = this.target.getCenterX();
+        const targetY = this.target.getCenterY();
+        const desiredAngle = Math.atan2(
+          targetY - this.getCenterY(),
+          targetX - this.getCenterX()
+        );
+
+        // Calculate current angle
+        const currentAngle = Math.atan2(this.speedY, this.speedX);
+
+        // Find the difference, handle wrap-around
+        let angleDiff = desiredAngle - currentAngle;
+        while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+        while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+        // Clamp the turn rate
+        const turnAmount = clamp(angleDiff, -this.turnRate, this.turnRate);
+
+        // Apply the turn
+        const newAngle = currentAngle + turnAmount;
+
+        // Update velocity based on new angle and fixed speed
+        const speed = this.config.speed;
+        this.speedX = Math.cos(newAngle) * speed;
+        this.speedY = Math.sin(newAngle) * speed;
+      } else {
+        // Target lost or destroyed, continue straight or find new?
+        // For now, continue straight. Could add re-targeting logic here.
+        this.isHoming = false; // Stop homing if target lost
+      }
+    }
+
+    // Update position based on velocity
+    this.x += this.speedX * speedFactor;
+    this.y += this.speedY * speedFactor;
+  }
+
+  draw(ctx) {
+    // Simple rect for now, could draw as small rocket shape
+    drawRect(ctx, this.x, this.y, this.width, this.height, this.color);
+  }
+}
+
+// --- Rocket Class (Player Ability) --- (No Change)
+class Rocket extends Entity {
+  /* ... */
+  constructor(x, y) {
+    const config = GAME_CONFIG.rocket;
+    super(x, y - config.height / 2, config.width, config.height, config.color);
+    this.speedY = config.speedY;
+    this.explosionRadius = config.explosionRadius;
+    this.damage = config.damage;
+  }
+  update(deltaTime) {
+    this.y += this.speedY * (deltaTime / 16.67);
+  }
+  draw(ctx) {
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.moveTo(this.x, this.y);
+    ctx.lineTo(this.x - this.width / 2, this.y + this.height);
+    ctx.lineTo(this.x + this.width / 2, this.y + this.height);
+    ctx.closePath();
+    ctx.fill();
+  }
+  shouldExplode(canvasHeight) {
+    return this.y < 0;
+  }
+}
+
+// --- Alien Class (No Change) ---
+class Alien extends Entity {
+  /* ... */
+  constructor(
+    x,
+    y,
+    width,
+    height,
+    speed,
+    health,
+    points,
+    color,
+    type,
+    typeConfig,
+    gameRef
+  ) {
+    super(x, y, width, height, color);
+    this.speed = speed;
+    this.health = health;
+    this.maxHealth = health;
+    this.points = points;
+    this.alienType = type;
+    this.typeConfig = typeConfig;
+    this.gameRef = gameRef;
+    this.state = "descending";
+    this.stateTimer = 0;
+    this.shootCooldown = 0;
+  }
+  update(deltaTime, canvasHeight, player) {
+    const speedFactor = deltaTime / 16.67;
+    this.stateTimer -= deltaTime;
+    this.shootCooldown -= deltaTime;
+    switch (this.alienType) {
+      case "scout":
+        this.y += this.speed * speedFactor;
+        break;
+      case "fighter":
+      case "elite":
+        switch (this.state) {
+          case "descending":
+            this.y += this.speed * speedFactor;
+            const hoverY =
+              canvasHeight * (this.typeConfig.hoverYThreshold || 0.15);
+            if (this.y >= hoverY) {
+              this.state = "hovering";
+              this.stateTimer = this.typeConfig.hoverDuration || 3000;
+              this.y = hoverY;
+            }
+            break;
+          case "hovering":
+            this.x +=
+              Math.sin(performance.now() * 0.001 + this.y) * 0.5 * speedFactor;
+            if (this.stateTimer <= 0) {
+              this.state = "attacking";
+              this.shootCooldown = 0;
+            }
+            break;
+          case "attacking":
+            if (this.shootCooldown <= 0) {
+              this.shoot(player);
+              this.shootCooldown = this.typeConfig.shootDelay || 1500;
+            }
+            break;
+        }
+        break;
+    }
+    this.x = clamp(this.x, 0, this.gameRef.width - this.width);
+  }
+  shoot(player) {
+    if (!this.gameRef || !player) return;
+    let bulletConfig = GAME_CONFIG.bullets.alienFighter;
+    let bulletSpeed = bulletConfig.speed;
+    if (this.alienType === "elite") {
+      bulletSpeed *= this.typeConfig.bulletSpeedMultiplier || 1.0;
+    }
+    const targetX = player.getCenterX();
+    const targetY = player.getCenterY();
+    const startX = this.getCenterX();
+    const startY = this.getCenterY();
+    const angle = Math.atan2(targetY - startY, targetX - startX);
+    const speedX = Math.cos(angle) * bulletSpeed;
+    const speedY = Math.sin(angle) * bulletSpeed;
+    this.gameRef.addAlienBullet(startX, startY, speedX, speedY, bulletConfig);
+  }
+  draw(ctx) {
+    if (this.alienType === "fighter") this.drawFighter(ctx);
+    else if (this.alienType === "elite") this.drawElite(ctx);
+    else this.drawScout(ctx);
+    const barConfig = GAME_CONFIG.aliens;
+    drawHealthBar(
+      ctx,
+      this.x,
+      this.y - barConfig.healthBarYOffset,
+      this.width,
+      barConfig.healthBarHeight,
+      this.health,
+      this.maxHealth
+    );
+  }
+  drawScout(ctx) {
+    ctx.fillStyle = this.color;
+    ctx.beginPath();
+    ctx.ellipse(
+      this.getCenterX(),
+      this.getCenterY(),
+      this.width / 2,
+      this.height / 2,
+      0,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.3)";
+    ctx.beginPath();
+    ctx.ellipse(
+      this.getCenterX(),
+      this.y + this.height / 3,
+      this.width / 4,
+      this.height / 4,
+      0,
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+  }
+  drawFighter(ctx) {
+    drawGenericShip(
+      ctx,
+      this.getCenterX(),
+      this.getCenterY(),
+      this.width,
+      this.height,
+      this.color,
+      "rgba(255, 100, 100, 0.3)",
+      "rgba(255, 50, 50, 0.4)"
+    );
+  }
+  drawElite(ctx) {
+    ctx.fillStyle = this.color;
+    const centerX = this.getCenterX();
+    const centerY = this.getCenterY();
+    const w2 = this.width / 2;
+    const h2 = this.height / 2;
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY - h2);
+    ctx.lineTo(centerX + w2, centerY);
+    ctx.lineTo(centerX, centerY + h2);
+    ctx.lineTo(centerX - w2, centerY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "rgba(255, 0, 255, 0.5)";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, w2 * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(centerX - w2 * 0.9, centerY - h2 * 0.2, w2 * 0.4, h2 * 0.4);
+    ctx.fillRect(centerX + w2 * 0.5, centerY - h2 * 0.2, w2 * 0.4, h2 * 0.4);
+  }
+  takeDamage(amount) {
+    this.health -= amount;
+    return this.health <= 0;
+  }
+  shouldDropItem() {
+    return Math.random() < (this.typeConfig.dropChance || 0.05);
+  }
+}
+
+// --- Particle Class (Add gravity for text bounce) ---
+class Particle extends Entity {
+  constructor(x, y, config) {
+    const radius = config.radius || 0;
+    super(x - radius, y - radius, radius * 2, radius * 2, config.color);
+    this.radius = radius;
+    this.speedX = config.speedX || 0;
+    this.speedY = config.speedY || 0;
+    this.initialLife = config.life || 1;
+    this.life = config.life || 1;
+    // this.decay = config.decay || 0.9; // Using linear time decay now
+    this.alpha = 1.0;
+
+    this.isText = config.isText || false;
+    this.text = config.text || "";
+    this.fontSize = config.fontSize || 12;
+    this.gravity = config.gravity || 0; // Add gravity property
+  }
+
+  update(deltaTime) {
+    const speedFactor = deltaTime / 16.67;
+
+    // Apply gravity if specified (for bounce effect)
+    if (this.gravity !== 0) {
+      this.speedY += this.gravity * speedFactor;
+    }
+
+    this.x += this.speedX * speedFactor;
+    this.y += this.speedY * speedFactor;
+    this.life -= deltaTime;
+
+    this.alpha = clamp(this.life / (this.initialLife * 0.6), 0, 1); // Faster fade
+
+    if (this.life <= 0) {
+      this.active = false;
+    }
+  }
+
+  draw(ctx) {
+    ctx.globalAlpha = this.alpha;
+    if (this.isText) {
+      drawText(
+        ctx,
+        this.text,
+        this.x + this.radius,
+        this.y + this.radius,
+        this.color,
+        this.fontSize
+      ); // Draw centered
+    } else {
+      drawCircle(
+        ctx,
+        this.x + this.radius,
+        this.y + this.radius,
+        this.radius,
+        this.color
+      );
+    }
+    ctx.globalAlpha = 1.0;
+  }
+}
+
+// --- Debris Class (No Change) ---
+class Debris extends Particle {
+  /* ... */
+  constructor(x, y, config) {
+    super(x, y, {
+      radius: Math.max(config.width, config.height) / 2,
+      color: config.color,
+      speedX: config.speedX,
+      speedY: config.speedY,
+      life: config.life,
+      decay: config.decay || 0.99,
+    });
+    this.width = config.width;
+    this.height = config.height;
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotationSpeed = config.rotationSpeed;
+    this.damage = config.damage;
+    this.isText = false;
+  }
+  update(deltaTime) {
+    super.update(deltaTime);
+    this.rotation += this.rotationSpeed * (deltaTime / 16.67);
+  }
+  draw(ctx) {
+    if (!this.active) return;
+    ctx.save();
+    ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+    ctx.rotate(this.rotation);
+    ctx.globalAlpha = this.alpha;
+    ctx.fillStyle = this.color;
+    ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+    ctx.restore();
+  }
+}
+
+// --- Wingman Class (No Change) ---
+class Wingman extends Entity {
+  /* ... */
+  constructor(playerX, playerY, offsetX) {
+    const config = GAME_CONFIG.wingman;
+    super(
+      playerX + offsetX,
+      playerY + config.offsetY,
+      config.width,
+      config.height,
+      config.color
+    );
+    this.offsetX = offsetX;
+    this.offsetY = config.offsetY;
+    this.targetX = this.x;
+    this.targetY = this.y;
+    this.followLerpFactor = config.followLerpFactor;
+    this.lastShotTime = 0;
+    this.shootDelay = config.shootDelay;
+    this.cockpitColor = config.cockpitColor;
+    this.engineColor = config.engineColor;
+  }
+  update(deltaTime, player, aliens, game) {
+    this.targetX = player.x + this.offsetX;
+    this.targetY = player.y + this.offsetY;
+    this.x += (this.targetX - this.x) * this.followLerpFactor;
+    this.y += (this.targetY - this.y) * this.followLerpFactor;
+  }
+  draw(ctx) {
+    drawGenericShip(
+      ctx,
+      this.getCenterX(),
+      this.getCenterY(),
+      this.width,
+      this.height,
+      this.color,
+      this.cockpitColor,
+      this.engineColor
+    );
+  }
+}
+
+// --- MiniShip Class (Implement Shooting) ---
+class MiniShip extends Entity {
+  constructor(playerX, playerY, index) {
+    const config = GAME_CONFIG.miniShip;
+    const initialOffsetX =
+      (index - Math.floor(GAME_CONFIG.miniShip.count / 2)) *
+      config.spreadOffset;
+    super(
+      playerX + initialOffsetX,
+      playerY,
+      config.width,
+      config.height,
+      config.color
+    );
+    this.followLerpFactor = config.followLerpFactor;
+    this.lastShotTime = 0; // Timestamp of the last shot
+    this.shootDelay = config.shootDelay; // Cooldown between shots
+    this.targetAlien = null; // Current primary target
+    this.cockpitColor = config.cockpitColor;
+    this.engineColor = config.engineColor;
+    this.returnOffsetY = config.returnOffsetY;
+    this.index = index; // Store index for potential targeting coordination
+  }
+
+  update(deltaTime, player, aliens, game) {
+    // Movement Logic (unchanged)
+    this.findTarget(aliens); // Find a target if needed
+    let targetX, targetY;
+    if (this.targetAlien) {
+      targetX = this.targetAlien.getCenterX();
+      targetY = this.targetAlien.getCenterY();
+    } else {
+      targetX =
+        player.x +
+        (this.index - Math.floor(GAME_CONFIG.miniShip.count / 2)) *
+          GAME_CONFIG.miniShip.spreadOffset *
+          0.8; // Return to formation
+      targetY = player.y - this.returnOffsetY;
+    }
+    this.x += (targetX - this.x) * this.followLerpFactor;
+    this.y += (targetY - this.y) * this.followLerpFactor;
+
+    // --- Shooting Logic ---
+    const currentTime = performance.now();
+    if (currentTime - this.lastShotTime >= this.shootDelay) {
+      // Find potential targets (nearby active aliens)
+      const potentialTargets = aliens.filter((a) => a.active && a.y > 0); // Consider only active aliens on screen
+      if (potentialTargets.length > 0) {
+        // Sort targets by distance (closest first) or some other priority
+        potentialTargets.sort((a, b) => distance(this, a) - distance(this, b));
+
+        // Fire a burst (currently just 1 rocket) at the closest target
+        const target = potentialTargets[0]; // Shoot closest
+        game.shootMiniShipRocket(this, target);
+        this.lastShotTime = currentTime; // Reset cooldown after firing
+
+        // TODO: Implement multi-target logic if desired
+        // Could involve looping through 'potentialTargets' up to 'maxTargets'
+        // and assigning targets round-robin or based on miniship index.
+      }
+    }
+  }
+
+  findTarget(aliens) {
+    // Simple targeting: if current target is dead or inactive, find a new one (closest?)
+    if (!this.targetAlien || !this.targetAlien.active) {
+      this.targetAlien = findClosestEntity(
+        this,
+        aliens.filter((a) => a.active && a.y > -a.height)
+      ); // Find closest active on-screen
+    }
+  }
+
+  draw(ctx) {
+    drawGenericShip(
+      ctx,
+      this.getCenterX(),
+      this.getCenterY(),
+      this.width,
+      this.height,
+      this.color,
+      this.cockpitColor,
+      this.engineColor
+    );
+  }
+}
+
+// --- Item Class (No Change) ---
+class Item extends Entity {
+  /* ... */
+  constructor(x, y, type, value = 0) {
+    const config = GAME_CONFIG.items;
+    super(
+      x - config.size / 2,
+      y - config.size / 2,
+      config.size,
+      config.size,
+      "white"
+    );
+    this.itemType = type;
+    this.value = value;
+    this.speedY = config.dropSpeedY;
+  }
+  update(deltaTime) {
+    this.y += this.speedY * (deltaTime / 16.67);
+  }
+  draw(ctx) {
+    drawItem(ctx, this);
+  }
+  applyEffect(player, game) {
+    switch (this.itemType) {
+      case "xp":
+        player.addScore(this.value, game);
+        game.particleManager.createXpIndicator(
+          this.getCenterX(),
+          this.getCenterY(),
+          `+${this.value}`
+        );
+        break;
+      case "life":
+        if (player.gainLife()) {
+          game.uiManager.updateLives(player.lives);
+          game.particleManager.createXpIndicator(
+            this.getCenterX(),
+            this.getCenterY(),
+            "+1 Life",
+            "#ffaaaa"
+          );
+        } else {
+          player.addScore(500, game);
+          game.particleManager.createXpIndicator(
+            this.getCenterX(),
+            this.getCenterY(),
+            "+500 (Max Lives)",
+            "#ffdddd"
+          );
+        }
+        break;
+      case "bomb":
+        game.activateBomb(this.getCenterX(), this.getCenterY());
+        break;
+    }
+  }
+}
+
+// --- Particle Manager (Update XP Indicator, Add MiniRocket Trail) ---
+class ParticleManager {
+  constructor() {
+    this.particles = [];
+    this.debris = [];
+  }
+
+  createParticle(x, y, config) {
+    this.particles.push(new Particle(x, y, config));
+  }
+  createDebrisPiece(x, y, config) {
+    this.debris.push(new Debris(x, y, config));
+  }
+
+  // --- Effect Creation Methods ---
+  createExplosion(x, y, color, size) {
+    const particleCount = Math.max(
+      5,
+      Math.floor(size * GAME_CONFIG.particles.explosionFactor)
+    );
+    const pConfig = GAME_CONFIG.particles;
+    for (let i = 0; i < particleCount; i++) {
+      this.createParticle(x, y, {
+        radius: getRandom(2, 6),
+        color: color,
+        speedX: getRandom(-3, 3),
+        speedY: getRandom(-3, 3),
+        life: getRandom(pConfig.baseLife, pConfig.baseLife + pConfig.lifeRange),
+      });
+    }
+    if (size > 15) this.createShockwave(x, y);
+  }
+  createShockwave(x, y) {
+    const pConfig = GAME_CONFIG.particles;
+    for (let i = 0; i < pConfig.shockwaveCount; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = pConfig.shockwaveSpeedFactor * 0.5;
+      this.createParticle(x, y, {
+        radius: getRandom(
+          pConfig.shockwaveMinRadius,
+          pConfig.shockwaveMinRadius + pConfig.shockwaveRadiusRange
+        ),
+        color: "rgba(255, 255, 255, 0.7)",
+        speedX: Math.cos(angle) * speed,
+        speedY: Math.sin(angle) * speed,
+        life: pConfig.shockwaveLife,
+      });
+    }
+  }
+  createMuzzleFlash(x, y, color, directionAngle = -Math.PI / 2) {
+    const count = GAME_CONFIG.particles.muzzleFlashCount;
+    for (let i = 0; i < count; i++) {
+      const speed = getRandom(1, 4);
+      const angle = directionAngle + getRandom(-0.5, 0.5);
+      this.createParticle(x, y, {
+        radius: getRandom(2, 5),
+        color: color,
+        speedX: Math.cos(angle) * speed,
+        speedY: Math.sin(angle) * speed,
+        life: getRandom(15, 25) * 16,
+      });
+    }
+  }
+  createBulletTrail(x, y, color) {
+    const count = GAME_CONFIG.particles.bulletTrailCount;
+    for (let i = 0; i < count; i++) {
+      this.createParticle(x, y, {
+        radius: getRandom(1, 3),
+        color: color,
+        speedX: 0,
+        speedY: getRandom(0, 1),
+        life: getRandom(8, 15) * 16,
+      });
+    }
+  }
+  createRocketFlame(x, y) {
+    const rConfig = GAME_CONFIG.rocket;
+    if (Math.random() > 0.3) {
+      this.createParticle(
+        x + getRandom(-rConfig.width / 4, rConfig.width / 4),
+        y,
+        {
+          radius: getRandom(3, 7),
+          color: rConfig.flameColor,
+          speedX: getRandom(-1, 1),
+          speedY: getRandom(2, 5),
+          life: getRandom(10, 20) * 16,
+        }
+      );
+    }
+  }
+  createEngineTrail(x, y, width) {
+    const count = GAME_CONFIG.particles.engineTrailCount;
+    const pConfig = GAME_CONFIG.player;
+    for (let i = 0; i < count; i++) {
+      this.createParticle(x + getRandom(-width / 4, width / 4), y, {
+        radius: getRandom(1, 4),
+        color: pConfig.engineColor.replace(/,\s*[\d.]+\)$/, ", 0.5)"),
+        speedX: getRandom(-1, 1),
+        speedY: getRandom(1, 4),
+        life: getRandom(15, 25) * 16,
+      });
+    }
+  }
+  createAlienDebris(alien) {
+    const dConfig = GAME_CONFIG.particles;
+    const count = Math.max(
+      1,
+      Math.floor(alien.width * dConfig.debrisCountFactor)
+    );
+    for (let i = 0; i < count; i++) {
+      this.createDebrisPiece(alien.getCenterX(), alien.getCenterY(), {
+        width: getRandom(
+          dConfig.debrisSizeMin,
+          dConfig.debrisSizeMin + dConfig.debrisSizeRange
+        ),
+        height: getRandom(
+          dConfig.debrisSizeMin,
+          dConfig.debrisSizeMin + dConfig.debrisSizeRange
+        ),
+        color: alien.color,
+        speedX: getRandom(
+          -dConfig.debrisSpeedFactor / 2,
+          dConfig.debrisSpeedFactor / 2
+        ),
+        speedY: getRandom(
+          -dConfig.debrisSpeedFactor / 2,
+          dConfig.debrisSpeedFactor / 2
+        ),
+        life:
+          getRandom(
+            dConfig.debrisBaseLife,
+            dConfig.debrisBaseLife + dConfig.debrisLifeRange
+          ) * 16,
+        rotationSpeed: getRandom(
+          -dConfig.debrisRotationFactor,
+          dConfig.debrisRotationFactor
+        ),
+        damage: dConfig.debrisDamage,
+      });
+    }
+  }
+  createPowerUpEffect(x, y, bulletMode) {
+    const color =
+      bulletMode === "spread"
+        ? GAME_CONFIG.bullets.player.colorSpread
+        : GAME_CONFIG.bullets.player.colorParallel;
+    for (let i = 0; i < 30; i++) {
+      this.createParticle(x, y, {
+        radius: getRandom(5, 15),
+        color: color,
+        speedX: getRandom(-4, 4),
+        speedY: getRandom(-4, 4),
+        life: getRandom(25, 45) * 16,
+      });
+    }
+  }
+
+  // Update XP Indicator for bounce
+  createXpIndicator(x, y, amountText, color = null) {
+    const config = GAME_CONFIG.particles.xpIndicator;
+    this.createParticle(x, y, {
+      isText: true,
+      text: amountText,
+      color: color || config.color,
+      speedX: getRandom(-0.3, 0.3), // Slight horizontal drift
+      speedY: config.speedY, // Use configured initial upward speed
+      life: config.life,
+      fontSize: config.fontSize,
+      gravity: config.gravity, // Add gravity for the bounce
+    });
+  }
+
+  // NEW: Create trails for MiniShip rockets
+  createMiniRocketTrail(x, y, color) {
+    const tConfig = GAME_CONFIG.particles.miniRocketTrail;
+    this.createParticle(x, y, {
+      radius: getRandom(tConfig.radiusMin, tConfig.radiusMax),
+      color: color,
+      speedX: getRandom(-0.2, 0.2),
+      speedY: tConfig.speedY,
+      life: tConfig.life * getRandom(0.8, 1.2), // Vary life slightly
+    });
+  }
+
+  // --- Update & Draw & Collision (No Change) ---
+  update(deltaTime) {
+    this.particles = this.particles.filter((p) => {
+      p.update(deltaTime);
+      return p.active;
+    });
+    this.debris = this.debris.filter((d) => {
+      d.update(deltaTime);
+      return d.active;
+    });
+  }
+  draw(ctx) {
+    for (const particle of this.particles) particle.draw(ctx);
+    for (const deb of this.debris) deb.draw(ctx);
+  }
+  checkDebrisCollisions(aliens, game) {
+    for (let i = this.debris.length - 1; i >= 0; i--) {
+      const piece = this.debris[i];
+      if (!piece.active) continue;
+      for (let j = aliens.length - 1; j >= 0; j--) {
+        const alien = aliens[j];
+        if (!alien.active) continue;
+        if (checkCollision(piece, alien)) {
+          const destroyed = alien.takeDamage(piece.damage);
+          piece.active = false;
+          if (destroyed) game.handleAlienDestroyed(alien, j, "debris");
+          break;
+        }
+      }
+    }
+  }
+  reset() {
+    this.particles = [];
+    this.debris = [];
+  }
+}
+
+
+/* File: ./js/utils.js */
+// js/utils.js
+
+/**
+ * Returns a random number between min (inclusive) and max (exclusive)
+ */
+function getRandom(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+/**
+ * Returns a random integer between min (inclusive) and max (inclusive).
+ */
+function getRandomInt(min, max) {
+    min = Math.ceil(min);
+    max = Math.floor(max);
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+/**
+ * Clamps a number between a minimum and maximum value.
+ */
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(value, max));
+}
+
+/**
+ * Simple Axis-Aligned Bounding Box (AABB) collision detection.
+ * Assumes objects have x, y, width, height properties.
+ * Note: x, y are often top-left corners in this context.
+ */
+function checkCollision(obj1, obj2) {
+    return obj1.x < obj2.x + obj2.width &&
+           obj1.x + obj1.width > obj2.x &&
+           obj1.y < obj2.y + obj2.height &&
+           obj1.y + obj1.height > obj2.y;
+}
+
+/**
+ * Calculates the distance between two points (objects with x, y).
+ */
+function distance(obj1, obj2) {
+    const dx = obj1.x - obj2.x;
+    const dy = obj1.y - obj2.y;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Finds the closest entity from a list to a source entity.
+ * Assumes entities have x, y properties.
+ * Returns the closest entity or null if the list is empty.
+ */
+function findClosestEntity(source, targets) {
+    let closest = null;
+    let minDistSq = Infinity; // Use squared distance for efficiency
+
+    for (const target of targets) {
+        // Skip dead targets if applicable (assuming a 'health' property > 0 means alive)
+        if (target.health !== undefined && target.health <= 0) continue;
+
+        const dx = source.x - target.x;
+        const dy = source.y - target.y;
+        const distSq = dx * dx + dy * dy;
+
+        if (distSq < minDistSq) {
+            minDistSq = distSq;
+            closest = target;
+        }
+    }
+    return closest;
+}
+
+/**
+* Finds the furthest entity from a list to a source entity.
+* Assumes entities have x, y properties.
+* Returns the furthest entity or null if the list is empty.
+*/
+function findFurthestEntity(source, targets) {
+   let furthest = null;
+   let maxDistSq = -1; // Use squared distance
+
+   for (const target of targets) {
+       // Skip dead targets if applicable
+       if (target.health !== undefined && target.health <= 0) continue;
+
+       const dx = source.x - target.x;
+       const dy = source.y - target.y;
+       const distSq = dx * dx + dy * dy;
+
+       if (distSq > maxDistSq) {
+           maxDistSq = distSq;
+           furthest = target;
+       }
+   }
+   return furthest;
+}
+
+
+// Export functions if using modules, otherwise they are global
+// export { getRandom, getRandomInt, clamp, checkCollision, distance, findClosestEntity, findFurthestEntity };
+
+/* File: ./js/input.js */
+// js/input.js
+
+class InputHandler {
+    constructor(canvas, game, player, abilityManager) {
+        this.canvas = canvas;
+        this.game = game;
+        this.player = player;
+        this.abilityManager = abilityManager;
+
+        // Bind methods to ensure 'this' context is correct
+        this.handleMouseMove = this.handleMouseMove.bind(this);
+        this.handleMouseClick = this.handleMouseClick.bind(this);
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleAbilityClick = this.handleAbilityClick.bind(this);
+
+        this.setupListeners();
+    }
+
+    setupListeners() {
+        // Mouse movement for player
+        this.canvas.addEventListener('mousemove', this.handleMouseMove);
+
+        // Mouse click for toggling autofire (or primary action)
+        this.canvas.addEventListener('click', this.handleMouseClick);
+
+        // Keyboard listeners
+        document.addEventListener('keydown', this.handleKeyDown);
+
+        // Ability Icon Clicks (using event delegation on the container)
+        const abilitiesContainer = document.querySelector('.abilities-container');
+        if (abilitiesContainer) {
+            abilitiesContainer.addEventListener('click', this.handleAbilityClick);
+        }
+    }
+
+    removeListeners() {
+         this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+         this.canvas.removeEventListener('click', this.handleMouseClick);
+         document.removeEventListener('keydown', this.handleKeyDown);
+         const abilitiesContainer = document.querySelector('.abilities-container');
+         if (abilitiesContainer) {
+             abilitiesContainer.removeEventListener('click', this.handleAbilityClick);
+         }
+    }
+
+    // --- Event Handlers ---
+
+    handleMouseMove(event) {
+        if (this.game.isRunning() && !this.game.isPaused()) {
+             // Calculate mouse position relative to canvas (important if canvas has offset/styling)
+             const rect = this.canvas.getBoundingClientRect();
+             const scaleX = this.canvas.width / rect.width; // Handle CSS scaling
+             // const scaleY = this.canvas.height / rect.height; // Not needed for X target
+
+             // Use clientX for position relative to viewport
+             const mouseX = (event.clientX - rect.left) * scaleX;
+            this.player.targetX = mouseX;
+        }
+    }
+
+    handleMouseClick(event) {
+        if (this.game.isRunning() && !this.game.isPaused()) {
+            // Toggle autofire
+            this.player.autoFire = !this.player.autoFire;
+            // console.log("Autofire:", this.player.autoFire); // Optional debug
+        }
+        // Could potentially be used for firing if autofire is off
+    }
+
+    handleKeyDown(event) {
+        if (!this.game.isRunning()) return; // Ignore if game not active
+
+        // Pause Toggle
+        if (event.code === 'Escape') {
+            event.preventDefault();
+            this.game.togglePause();
+            return; // Don't process other keys if paused/resumed
+        }
+
+        // Ignore keys if paused
+        if (this.game.isPaused()) return;
+
+        // Abilities
+        switch (event.code) {
+            case 'Space':
+                event.preventDefault();
+                this.game.togglePlayerBulletMode(); // Delegate to game logic
+                break;
+            case 'KeyR':
+                event.preventDefault();
+                this.game.activateAbility('rocket');
+                break;
+            case 'KeyW':
+                event.preventDefault();
+                this.game.activateAbility('wingman');
+                break;
+            case 'KeyM':
+                 event.preventDefault();
+                 this.game.activateAbility('miniShip');
+                break;
+             // Add other keybindings if needed
+        }
+    }
+
+    handleAbilityClick(event) {
+        if (!this.game.isRunning() || this.game.isPaused()) return;
+
+        // Find the clicked ability element by traversing up from the target
+        let clickedAbility = event.target.closest('.ability');
+        if (clickedAbility && clickedAbility.id) {
+            // Extract the ability key from the ID (e.g., "ability-rocket" -> "rocket")
+            const key = clickedAbility.id.replace('ability-', '');
+             if (key === 'bulletMode') {
+                 this.game.togglePlayerBulletMode();
+             } else {
+                this.game.activateAbility(key);
+             }
+        }
+    }
+}
+
+// Export class if using modules
+// export { InputHandler };
+

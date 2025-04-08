@@ -1,0 +1,15 @@
+/* css/base.css */
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #000;
+  font-family: "Arial", sans-serif;
+  color: white;
+}
+
+#gameCanvas {
+  display: block;
+  background-color: #000; /* Fallback if starfield fails */
+  cursor: crosshair;
+  font-family: "Arial", sans-serif;
+}
