@@ -201,6 +201,8 @@
 </html>
 
 
+
+
 /* File: ./css/abilities.css */
 /* css/abilities.css */
 
@@ -339,6 +341,8 @@
   transform: scale(1);
   box-shadow: none;
 }
+
+
 
 
 /* File: ./css/ui.css */
@@ -602,6 +606,8 @@
 }
 
 
+
+
 /* File: ./css/base.css */
 /* css/base.css */
 body {
@@ -618,6 +624,8 @@ body {
   cursor: crosshair;
   font-family: "Arial", sans-serif;
 }
+
+
 
 
 /* File: ./js/drawing.js */
@@ -873,6 +881,8 @@ function drawItem(ctx, item) {
     drawText(ctx, icon, item.x + item.width / 2, item.y + item.height / 2, 'black', cfg.size * 0.7);
 
 }
+
+
 
 
 /* File: ./js/game.js */
@@ -1670,6 +1680,8 @@ class Game {
 }
 
 
+
+
 /* File: ./js/ui.js */
 // js/ui.js
 
@@ -1954,6 +1966,8 @@ class UIManager {
 }
 
 
+
+
 /* File: ./js/abilities.js */
 // js/abilities.js
 
@@ -2179,6 +2193,8 @@ class AbilityManager {
          this.updateAllUI();
     }
 }
+
+
 
 
 /* File: ./js/config.js */
@@ -2418,6 +2434,8 @@ const GAME_CONFIG = {
   // UI
   levelUpMessageDuration: 2000,
 };
+
+
 
 
 /* File: ./js/entities.js */
@@ -3367,6 +3385,8 @@ class ParticleManager {
 }
 
 
+
+
 /* File: ./js/utils.js */
 // js/utils.js
 
@@ -3467,6 +3487,8 @@ function findFurthestEntity(source, targets) {
 
 // Export functions if using modules, otherwise they are global
 // export { getRandom, getRandomInt, clamp, checkCollision, distance, findClosestEntity, findFurthestEntity };
+
+
 
 /* File: ./js/input.js */
 // js/input.js
@@ -3592,4 +3614,1264 @@ class InputHandler {
 
 // Export class if using modules
 // export { InputHandler };
+
+
+
+/* File: ./tests/proc-music-3/index.html */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Procedural Sci-Fi Music</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.37/Tone.min.js"></script>
+  <style>
+    body {
+      background: #000;
+      color: #fff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      margin-bottom: 40px;
+    }
+    button {
+      font-size: 1.5rem;
+      padding: 1em 2em;
+      background: #444;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+  <h1>Procedural Sci-Fi Music</h1>
+  <button id="startButton">Start Music</button>
+  <script>
+    // Melody Synth for lead procedural notes
+    const melodySynth = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "sawtooth" },
+      envelope: { attack: 0.05, decay: 0.1, sustain: 0.5, release: 1 }
+    }).toDestination();
+
+    // Pad Synth for atmospheric drones
+    const padSynth = new Tone.Synth({
+      oscillator: { type: "triangle" },
+      envelope: { attack: 2, decay: 1, sustain: 0.7, release: 4 }
+    });
+    const reverb = new Tone.Reverb({ decay: 4, preDelay: 0.2 }).toDestination();
+    padSynth.connect(reverb);
+
+    // Optional Noise Synth for space ambient effects
+    const noiseSynth = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.5, decay: 1, sustain: 0, release: 0 }
+    }).toDestination();
+
+    // Define musical elements
+    const scale = ["C4", "D4", "E4", "G4", "A4", "B4", "C5"];
+    const chords = [
+      ["C4", "E4", "G4"],
+      ["D4", "F4", "A4"],
+      ["E4", "G4", "B4"],
+      ["G4", "B4", "D5"]
+    ];
+
+    // Utility function for randomness
+    function getRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // Schedule a procedural melody – trigger a random note every quarter note.
+    Tone.Transport.scheduleRepeat(time => {
+      const note = getRandom(scale);
+      melodySynth.triggerAttackRelease(note, "8n", time);
+    }, "4n");
+
+    // Schedule a slow pad chord every 2 measures for atmospheric depth.
+    Tone.Transport.scheduleRepeat(time => {
+      const chord = getRandom(chords);
+      padSynth.triggerAttackRelease(chord, "1m", time);
+    }, "2m");
+
+    // Schedule subtle ambient noise randomly within each 8th note.
+    Tone.Transport.scheduleRepeat(time => {
+      if (Math.random() < 0.3) {
+        noiseSynth.triggerAttackRelease("16n", time);
+      }
+    }, "8n");
+
+    // Start the audio context and transport after a button click (to comply with autoplay policies)
+    document.getElementById("startButton").addEventListener("click", () => {
+      Tone.start().then(() => {
+        Tone.Transport.start();
+        document.getElementById("startButton").disabled = true;
+        document.getElementById("startButton").innerText = "Music Playing";
+      });
+    });
+  </script>
+</body>
+</html>
+
+
+/* File: ./tests/proc-music-4/index.html */
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>80s Arcade Racer Music</title>
+    {/* Updated Title */}
+    <style>
+      /* Basic styling - feel free to get more creative! */
+      body {
+        font-family: "Press Start 2P", cursive; /* Classic pixel font (needs import or fallback) */
+        /* Fallback font */
+        font-family: Consolas, monaco, monospace;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background-color: #000000; /* Black background */
+        color: #ffff00; /* Yellow text */
+        text-align: center;
+        image-rendering: pixelated; /* Keep fonts sharp */
+      }
+      /* Optional: Import pixel font */
+      @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+      #controls {
+        background-color: #111;
+        padding: 30px 40px;
+        border: 4px solid #ff00ff; /* Magenta border */
+        box-shadow: 0 0 20px #ff00ff, inset 0 0 10px #ff00ff;
+      }
+      h1 {
+        color: #00ffff; /* Cyan heading */
+        text-shadow: 3px 3px 0px #ff00ff; /* Magenta shadow */
+        margin-bottom: 30px;
+      }
+      button {
+        padding: 15px 25px;
+        font-family: inherit; /* Use body font */
+        font-size: 1em;
+        cursor: pointer;
+        background-color: #333;
+        color: #ffff00; /* Yellow text */
+        border: 3px solid #ffff00; /* Yellow border */
+        border-radius: 0; /* Sharp corners */
+        transition: background-color 0.1s, color 0.1s;
+        text-transform: uppercase;
+        box-shadow: 3px 3px 0 #555;
+      }
+      button:active {
+        box-shadow: 1px 1px 0 #555;
+        transform: translate(2px, 2px);
+      }
+      button:hover {
+        background-color: #ffff00;
+        color: #000;
+      }
+      button.stop {
+        border-color: #ff0000; /* Red border */
+        color: #ff0000; /* Red text */
+      }
+      button.stop:hover {
+        background-color: #ff0000;
+        color: #000;
+      }
+      p {
+        margin-top: 20px;
+        color: #ccc;
+        font-size: 0.8em;
+      }
+      a {
+        color: #00ff00;
+      } /* Green links */
+    </style>
+  </head>
+  <body>
+    <div id="controls">
+      <h1>HIGH SCORE HERO</h1>
+      {/* Updated Header */} <button id="startButton">Insert Coin</button> {/*
+      Updated Button Text */}
+      <p>Press Start for Radical Arcade Tunes!</p>
+      <p>
+        (Powered by
+        <a
+          href="https://tonejs.github.io/"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Tone.js</a
+        >)
+      </p>
+    </div>
+
+    <!-- Include Tone.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Include your script -->
+    <script src="script.js"></script>
+  </body>
+</html>
+
+
+/* File: ./tests/proc-music-4/script.js */
+const startButton = document.getElementById("startButton");
+let isPlaying = false;
+let toneStarted = false;
+
+// Instruments & Effects
+let kick, snare, hats, bassSynth, leadSynth, arpSynth, cymbal;
+let distortion, chorus, limiter;
+
+// Sequences & Loops & Triggers
+let kickSequence, snareSequence, hatSequence, bassSequence, riffSequence;
+let arpTrigger, cymbalTrigger, snareRollTrigger; // For scheduling periodic events
+let snareRollSequence; // The actual short sequence for the roll
+
+// --- Configuration ---
+const BPM = 160; // Fast!
+const RIFF_NOTES = ["C4", "G4", "C4", "A4", "C5", "A4", "G4", null]; // Example catchy riff
+const BASS_NOTES = ["C2", null, "C2", null, "F2", "F2", "G2", null]; // Simple bassline
+const KICK_PATTERN = [1, 0, 0.8, 0, 1, 0, 0.8, 0, 1, 0, 0.8, 0, 1, 0.9, 0, 0.8]; // 1=hit, 0=rest, 0.8=quieter hit
+const SNARE_PATTERN = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.8, 0];
+const HAT_PATTERN = [
+  1, 0.7, 1, 0.7, 1, 0.7, 1, 0.7, 1, 0.7, 1, 0.7, 1, 0.7, 1, 0.7,
+]; // Busy 16th hats with velocity variation
+const ARP_NOTES = ["C6", "E6", "G6", "C7"]; // High arpeggio notes
+const FILL_INTERVAL = "2m"; // How often to try triggering a fill (cymbal or roll)
+
+function setupAudio() {
+  // --- Master Output ---
+  limiter = new Tone.Limiter(-3).toDestination(); // Prevent clipping, add punch
+
+  // --- Effects ---
+  distortion = new Tone.Distortion(0.4); // Distortion for the lead
+  chorus = new Tone.Chorus(4, 1.5, 0.6); // Subtle chorus (freq, delayTime, depth)
+
+  // --- Instruments ---
+  kick = new Tone.MembraneSynth({
+    pitchDecay: 0.02,
+    octaves: 4,
+    oscillator: { type: "square" }, // Punchier kick
+    envelope: { attack: 0.001, decay: 0.3, sustain: 0.01, release: 0.2 },
+  }).connect(limiter); // Kick direct to limiter (less reverb usually)
+  kick.volume.value = 0;
+
+  snare = new Tone.NoiseSynth({
+    noise: { type: "white" },
+    envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.15 },
+  }).connect(limiter);
+  snare.volume.value = -6;
+
+  hats = new Tone.MetalSynth({
+    // Crisp hats
+    frequency: 300,
+    envelope: { attack: 0.001, decay: 0.05, release: 0.05 },
+    harmonicity: 4.1,
+    modulationIndex: 10,
+    resonance: 3000,
+    octaves: 1.5,
+  }).connect(limiter);
+  hats.volume.value = -22;
+
+  bassSynth = new Tone.MonoSynth({
+    oscillator: { type: "square" }, // Classic square bass
+    envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.4 },
+    filterEnvelope: {
+      attack: 0.001,
+      decay: 0.05,
+      sustain: 0.1,
+      release: 0.2,
+      baseFrequency: 80,
+      octaves: 2,
+    },
+  }).connect(limiter);
+  bassSynth.volume.value = -8;
+
+  // Lead "Guitar" Synth
+  leadSynth = new Tone.MonoSynth({
+    oscillator: { type: "sawtooth" }, // Sawtooth for a brighter lead
+    envelope: { attack: 0.02, decay: 0.3, sustain: 0.2, release: 0.5 },
+    filterEnvelope: {
+      attack: 0.01,
+      decay: 0.1,
+      sustain: 0.1,
+      release: 0.2,
+      baseFrequency: 800,
+      octaves: 3,
+    },
+  }).chain(distortion, chorus, limiter); // Lead -> Distortion -> Chorus -> Limiter
+  leadSynth.volume.value = -12;
+
+  // Synth for the fast arpeggio fills
+  arpSynth = new Tone.MonoSynth({
+    oscillator: { type: "triangle" }, // Brighter, clearer tone for arps
+    envelope: { attack: 0.005, decay: 0.1, sustain: 0.05, release: 0.1 },
+    filterEnvelope: {
+      attack: 0.005,
+      decay: 0.05,
+      sustain: 0,
+      release: 0.1,
+      baseFrequency: 1500,
+      octaves: 4,
+    },
+  }).connect(limiter);
+  arpSynth.volume.value = -15;
+
+  // Cymbal Crash
+  cymbal = new Tone.NoiseSynth({
+    noise: { type: "white" }, // Or 'pink'
+    envelope: { attack: 0.01, decay: 0.8, sustain: 0.1, release: 1.5 }, // Longer tail
+  }).connect(limiter);
+  cymbal.volume.value = -10;
+
+  // --- Sequences ---
+  Tone.Transport.bpm.value = BPM;
+
+  // Main Drum Sequences
+  kickSequence = new Tone.Sequence(
+    (time, velocity) => {
+      if (velocity > 0) kick.triggerAttack(time, velocity * 0.8); // Velocity controls volume/hit
+    },
+    KICK_PATTERN,
+    "16n"
+  ).start(0);
+
+  snareSequence = new Tone.Sequence(
+    (time, velocity) => {
+      if (velocity > 0) snare.triggerAttack(time, velocity * 0.9);
+    },
+    SNARE_PATTERN,
+    "16n"
+  ).start(0);
+
+  hatSequence = new Tone.Sequence(
+    (time, velocity) => {
+      if (velocity > 0) hats.triggerAttackRelease("32n", time, velocity * 0.5); // Short hat duration
+    },
+    HAT_PATTERN,
+    "16n"
+  ).start(0);
+
+  // Bass Sequence
+  bassSequence = new Tone.Sequence(
+    (time, note) => {
+      if (note) bassSynth.triggerAttackRelease(note, "8n", time);
+    },
+    BASS_NOTES,
+    "8n"
+  ).start(0);
+
+  // Lead Riff Sequence
+  riffSequence = new Tone.Sequence(
+    (time, note) => {
+      if (note) leadSynth.triggerAttackRelease(note, "16n", time);
+    },
+    RIFF_NOTES,
+    "8n"
+  ).start(0); // Riff notes are 8th notes long in this pattern
+
+  // --- Periodic Fills / Unexpected Sounds ---
+
+  // Cymbal Trigger (Scheduled)
+  cymbalTrigger = Tone.Transport.scheduleRepeat(
+    (time) => {
+      // Only trigger sometimes (e.g., 50% chance) to make it less predictable
+      if (Math.random() < 0.5) {
+        console.log("Cymbal Crash!");
+        cymbal.triggerAttack(time);
+      }
+    },
+    FILL_INTERVAL,
+    "1m"
+  ); // Check every FILL_INTERVAL, start 1 measure in
+
+  // Snare Roll Sequence (the roll itself) - short and fast
+  snareRollSequence = new Tone.Sequence(
+    (time) => {
+      snare.triggerAttack(time, 0.7); // Slightly lower velocity for roll
+    },
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    "32n"
+  ); // 8 hits at 32nd note speed
+  snareRollSequence.loop = false; // Play only once when started
+
+  // Snare Roll Trigger (Scheduled) - Starts the snareRollSequence
+  snareRollTrigger = Tone.Transport.scheduleRepeat(
+    (time) => {
+      // Trigger less often than cymbal (e.g., 30% chance)
+      if (Math.random() < 0.3) {
+        console.log("Snare Roll!");
+        // Stop the main snare sequence briefly to avoid clash
+        snareSequence.stop(time);
+        snareRollSequence.start(time);
+        // Schedule the main snare sequence to restart after the roll
+        // Roll duration: 8 hits * '32n' = '4n'
+        snareSequence.start(time + Tone.Time("4n").toSeconds());
+      }
+    },
+    FILL_INTERVAL,
+    "2m"
+  ); // Check every FILL_INTERVAL, start 2 measures in
+
+  // Arpeggio Trigger (Scheduled) - Plays a quick arp
+  arpTrigger = Tone.Transport.scheduleRepeat(
+    (time) => {
+      if (Math.random() < 0.4) {
+        // 40% chance
+        console.log("Arp Fill!");
+        // Play the arp notes quickly one after another
+        arpSynth.triggerAttackRelease(ARP_NOTES[0], "32n", time);
+        arpSynth.triggerAttackRelease(
+          ARP_NOTES[1],
+          "32n",
+          time + Tone.Time("32n").toSeconds()
+        );
+        arpSynth.triggerAttackRelease(
+          ARP_NOTES[2],
+          "32n",
+          time + Tone.Time("32n").toSeconds() * 2
+        );
+        arpSynth.triggerAttackRelease(
+          ARP_NOTES[3],
+          "32n",
+          time + Tone.Time("32n").toSeconds() * 3
+        );
+      }
+    },
+    "1m",
+    "3m"
+  ); // Check every measure, starting 3 measures in
+}
+
+// --- Control ---
+function toggleMusic() {
+  if (!toneStarted) {
+    Tone.start()
+      .then(() => {
+        console.log("Audio Context Started");
+        toneStarted = true;
+        setupAudio();
+        startMusic();
+      })
+      .catch((e) => {
+        console.error("Error starting Tone.js:", e);
+        alert(
+          "Could not start audio. Browser might need interaction or doesn't support Web Audio."
+        );
+      });
+  } else {
+    if (isPlaying) {
+      stopMusic();
+    } else {
+      startMusic();
+    }
+  }
+}
+
+function startMusic() {
+  if (!kickSequence) {
+    // Basic check if setup ran
+    console.error("Audio not set up!");
+    return;
+  }
+  console.log("Starting Transport & Sequences");
+  // Restart sequences if they were stopped
+  kickSequence.start(0);
+  snareSequence.start(0);
+  hatSequence.start(0);
+  bassSequence.start(0);
+  riffSequence.start(0);
+  // Ensure scheduled events are active within the transport timeline
+  // scheduleRepeat events automatically follow the transport state
+
+  Tone.Transport.start("+0.1"); // Start transport slightly ahead
+  isPlaying = true;
+  startButton.textContent = "Quit Game";
+  startButton.classList.add("stop");
+}
+
+function stopMusic() {
+  console.log("Stopping Transport & Sequences");
+  Tone.Transport.stop();
+
+  // Stop main sequences
+  if (kickSequence) kickSequence.stop(0);
+  if (snareSequence) snareSequence.stop(0);
+  if (hatSequence) hatSequence.stop(0);
+  if (bassSequence) bassSequence.stop(0);
+  if (riffSequence) riffSequence.stop(0);
+  if (snareRollSequence) snareRollSequence.stop(0); // Stop roll if it was playing
+
+  // Clear all scheduled Tone.Transport events
+  Tone.Transport.cancel(0);
+
+  // Silence synths - important for noise/cymbal
+  if (kick) kick.triggerRelease(Tone.now());
+  if (snare) snare.triggerRelease(Tone.now());
+  if (hats) hats.triggerRelease(Tone.now());
+  if (bassSynth) bassSynth.triggerRelease(Tone.now());
+  if (leadSynth) leadSynth.triggerRelease(Tone.now());
+  if (arpSynth) arpSynth.triggerRelease(Tone.now());
+  if (cymbal) cymbal.triggerRelease(Tone.now());
+
+  isPlaying = false;
+  startButton.textContent = "Insert Coin";
+  startButton.classList.remove("stop");
+}
+
+// Event Listener
+startButton.addEventListener("click", toggleMusic);
+
+
+/* File: ./tests/proc-music-5/index.html */
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Procedural Sci-Fi 80's Arcade Music</title>
+  </head>
+  <body>
+    <h1>Procedural Sci-Fi 80's Arcade Music</h1>
+    <p>
+      Click "Start" to play the procedural soundtrack, and "Stop" to halt it.
+    </p>
+    <button id="startButton">Start Music</button>
+    <button id="stopButton">Stop Music</button>
+
+    <script>
+      // Global Variables
+      let audioContext;
+      let nextNoteTime = 0;
+      let tempo = 140; // BPM
+      let isPlaying = false;
+      let scheduleTimer;
+
+      // We'll schedule up to a short horizon and keep refreshing
+      const scheduleAheadTime = 0.1; // schedule audio 0.1s ahead
+      const secondsPerBeat = 60.0 / tempo; // a single quarter note
+      const notesPerMeasure = 4; // 4 beats per measure
+      const measureDuration = notesPerMeasure * secondsPerBeat;
+
+      // Some frequencies for a typical "electric guitar" style lead
+      const guitarNotes = [196, 220, 261.63, 293.66, 329.63, 392, 440, 493.88];
+
+      // A repeating pattern for the main "riff" (in half or quarter notes)
+      let guitarPattern = [
+        // Each entry: [noteIndex, lengthInBeats]
+        [4, 1], // E4  (index 4 in guitarNotes array)
+        [5, 1], // G4
+        [4, 1], // E4
+        [3, 1], // D4
+        [2, 1], // C4
+        [3, 1],
+        [4, 2], // E4 for a longer note
+      ];
+
+      // Kick drum: short noise burst, low frequency emphasis
+      function playKick(time) {
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(120, time);
+
+        // Quick pitch drop
+        oscillator.frequency.exponentialRampToValueAtTime(50, time + 0.1);
+
+        gainNode.gain.setValueAtTime(1, time);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+        oscillator.connect(gainNode).connect(audioContext.destination);
+        oscillator.start(time);
+        oscillator.stop(time + 0.21);
+      }
+
+      // Snare: noise burst, bandpass or highpass
+      function playSnare(time) {
+        const noiseBuffer = createNoiseBuffer();
+        const noiseSource = audioContext.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+
+        const filter = audioContext.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 1000;
+
+        const gainNode = audioContext.createGain();
+        gainNode.gain.setValueAtTime(0.5, time);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, time + 0.2);
+
+        noiseSource
+          .connect(filter)
+          .connect(gainNode)
+          .connect(audioContext.destination);
+        noiseSource.start(time);
+        noiseSource.stop(time + 0.21);
+      }
+
+      // Cymbal crash: higher-frequency noise burst, slightly longer decay
+      function playCymbalCrash(time) {
+        const noiseBuffer = createNoiseBuffer();
+        const noiseSource = audioContext.createBufferSource();
+        noiseSource.buffer = noiseBuffer;
+
+        const filter = audioContext.createBiquadFilter();
+        filter.type = "highpass";
+        filter.frequency.value = 4000;
+
+        const gainNode = audioContext.createGain();
+        gainNode.gain.setValueAtTime(1, time);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, time + 1.0);
+
+        noiseSource
+          .connect(filter)
+          .connect(gainNode)
+          .connect(audioContext.destination);
+        noiseSource.start(time);
+        noiseSource.stop(time + 1.05);
+      }
+
+      // Short drum roll with random hits
+      function playDrumRoll(time) {
+        const rollLength = 0.5; // 0.5 seconds
+        const hitInterval = 0.05; // 50ms between hits
+        let t = time;
+        while (t < time + rollLength) {
+          // Randomly pick a basic snare or kick for roll effect
+          if (Math.random() > 0.5) {
+            playSnare(t);
+          } else {
+            playKick(t);
+          }
+          t += hitInterval;
+        }
+      }
+
+      // "Electric guitar" note with a sawtooth or square oscillator
+      function playGuitarNote(freq, time, durationInBeats) {
+        const duration = durationInBeats * secondsPerBeat;
+        const oscillator = audioContext.createOscillator();
+        oscillator.type = "sawtooth";
+        oscillator.frequency.setValueAtTime(freq, time);
+
+        const gainNode = audioContext.createGain();
+        gainNode.gain.setValueAtTime(0.3, time);
+        gainNode.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+        oscillator.connect(gainNode).connect(audioContext.destination);
+        oscillator.start(time);
+        oscillator.stop(time + duration);
+      }
+
+      // Create a buffer of noise for snare/cymbal
+      function createNoiseBuffer() {
+        const bufferSize = audioContext.sampleRate;
+        const buffer = audioContext.createBuffer(
+          1,
+          bufferSize,
+          audioContext.sampleRate
+        );
+        let output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        return buffer;
+      }
+
+      // Schedule the next measure of music
+      function scheduleMeasure() {
+        // Main guitar pattern
+        let measureStart = nextNoteTime;
+        guitarPattern.forEach(([noteIndex, lengthInBeats]) => {
+          const freq = guitarNotes[noteIndex];
+          playGuitarNote(freq, measureStart, lengthInBeats);
+          measureStart += lengthInBeats * secondsPerBeat;
+        });
+
+        // Simple drum pattern (Kick on beat 1 & 3, Snare on 2 & 4)
+        for (let beat = 0; beat < notesPerMeasure; beat++) {
+          let time = nextNoteTime + beat * secondsPerBeat;
+          if (beat === 0 || beat === 2) {
+            playKick(time);
+          } else if (beat === 1 || beat === 3) {
+            playSnare(time);
+          }
+        }
+
+        // Random chance for a cymbal or drum roll
+        const randomEvent = Math.random();
+        if (randomEvent < 0.2) {
+          // 20% chance of random cymbal crash on the measure
+          const crashTime =
+            nextNoteTime + Math.random() * measureDuration * 0.5;
+          playCymbalCrash(crashTime);
+        } else if (randomEvent < 0.3) {
+          // 10% chance of a drum roll
+          const rollTime = nextNoteTime + Math.random() * measureDuration * 0.5;
+          playDrumRoll(rollTime);
+        }
+
+        // Next measure
+        nextNoteTime += measureDuration;
+      }
+
+      // Continuously schedule measures as time goes on
+      function scheduler() {
+        while (nextNoteTime < audioContext.currentTime + scheduleAheadTime) {
+          scheduleMeasure();
+        }
+      }
+
+      // Start the music
+      function startMusic() {
+        if (!audioContext) {
+          audioContext = new (window.AudioContext ||
+            window.webkitAudioContext)();
+        }
+        if (!isPlaying) {
+          isPlaying = true;
+          nextNoteTime = audioContext.currentTime + 0.1;
+          scheduleTimer = setInterval(scheduler, 25);
+        }
+      }
+
+      // Stop the music
+      function stopMusic() {
+        if (isPlaying) {
+          isPlaying = false;
+          clearInterval(scheduleTimer);
+          nextNoteTime = 0;
+          // Close or suspend audio context
+          if (audioContext.close) {
+            audioContext.close().then(() => {
+              audioContext = null;
+            });
+          } else if (audioContext.suspend) {
+            audioContext.suspend();
+          }
+        }
+      }
+
+      // UI Buttons
+      document
+        .getElementById("startButton")
+        .addEventListener("click", startMusic);
+      document
+        .getElementById("stopButton")
+        .addEventListener("click", stopMusic);
+    </script>
+  </body>
+</html>
+
+
+/* File: ./tests/proc-music-2/index.html */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Combat Music</title> {/* Changed Title */}
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Slightly more 'tech' font */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #050510; /* Darker blue/black */
+            color: #0f0; /* Green 'terminal' color */
+            text-align: center;
+        }
+        #controls {
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 30px 40px;
+            border-radius: 5px;
+            border: 1px solid #0f0; /* Green border */
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
+        }
+        h1 {
+            color: #0f0;
+             text-shadow: 0 0 5px #0f0;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+            background-color: #050; /* Darker green */
+            color: #0f0;
+            border: 1px solid #0f0;
+            border-radius: 3px;
+            transition: background-color 0.2s, box-shadow 0.2s;
+            text-transform: uppercase; /* More 'military' feel */
+        }
+        button:hover {
+            background-color: #080;
+            box-shadow: 0 0 10px #0f0;
+        }
+         button.stop {
+             background-color: #500; /* Darker red */
+             color: #f00; /* Red text */
+             border-color: #f00; /* Red border */
+         }
+          button.stop:hover {
+             background-color: #800;
+             box-shadow: 0 0 10px #f00;
+         }
+        p {
+            margin-top: 20px;
+            color: #ccc;
+            font-size: 0.9em;
+        }
+         a { color: #0ff; } /* Cyan links */
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>Pilot Combat Audio Feed</h1> {/* Changed Header */}
+        <button id="startButton">Engage Audio</button> {/* Changed Button Text */}
+        <p>Activate procedural combat background music.</p>
+        <p>(Uses <a href="https://tonejs.github.io/" target="_blank" rel="noopener noreferrer">Tone.js</a>)</p>
+    </div>
+
+    <!-- Include Tone.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Include your script -->
+    <script src="script.js"></script>
+</body>
+</html>
+
+/* File: ./tests/proc-music-2/script.js */
+const startButton = document.getElementById('startButton');
+let isPlaying = false;
+let toneStarted = false; // Track if Tone.js context has been started
+
+// Synths, Effects, Sequences - declare vars here
+let kick, snare, hats, bassSynth, leadSynth;
+let distortion, filter, delay, reverb, limiter;
+let kickSequence, snareSequence, hatSequence, bassSequence, leadLoop;
+
+// --- Configuration ---
+const BPM = 145; // Faster tempo for combat
+const BASE_NOTE = 'C';
+const BASS_OCTAVE = 2;
+const LEAD_OCTAVES = [4, 5, 6]; // Higher octaves for lead/arp
+const SCALE = ['C', 'Eb', 'F', 'Gb', 'Bb', 'C']; // C Minor scale with added Gb (tritone) for tension
+const KICK_PATTERN = ['C1', null, null, null, 'C1', null, null, 'C1', 'C1', null, null, null, null, null, 'C1', null];
+const SNARE_PATTERN = [null, null, null, null, 'C2', null, null, null, null, null, null, null, 'C2', null, 'C2', null]; // Note doesn't matter for noise synth, just position
+const HAT_PATTERN = ['C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3', 'C3']; // Consistent 16th note hats
+const BASS_PATTERN = [`${BASE_NOTE}${BASS_OCTAVE}`, null, `${BASE_NOTE}${BASS_OCTAVE}`, null, `${BASE_NOTE + '#'}${BASS_OCTAVE}`, null, null, null]; // Simple repeating bass
+
+// Function to setup audio components
+function setupAudio() {
+    // --- Master Effects Chain ---
+    distortion = new Tone.Distortion(0.2).toDestination(); // Mild distortion
+    filter = new Tone.AutoFilter({ // Faster filter sweep
+        frequency: "2n",
+        baseFrequency: 300,
+        octaves: 4,
+        depth: 0.5,
+        type: "sine" // Smoother LFO
+    }).connect(distortion); // Filter feeds into distortion
+    filter.start();
+
+    delay = new Tone.FeedbackDelay("8n.", 0.4).connect(filter); // Faster delay, less feedback
+    reverb = new Tone.Reverb({
+        decay: 2.5, // Shorter reverb than ambient
+        wet: 0.4
+    }).connect(delay); // Reverb feeds delay -> filter -> distortion
+
+    // Limiter at the end to prevent clipping and add punch
+    limiter = new Tone.Limiter(-6).toDestination(); // Set threshold to -6dB
+    distortion.connect(limiter); // Connect distortion output to the limiter
+
+    // --- Instruments ---
+
+    // Kick Drum
+    kick = new Tone.MembraneSynth({
+        pitchDecay: 0.08,
+        octaves: 6,
+        oscillator: { type: 'sine' },
+        envelope: { attack: 0.001, decay: 0.5, sustain: 0.01, release: 0.8 },
+    }).connect(reverb); // Kick gets some space
+    kick.volume.value = -3; // Boost kick slightly
+
+    // Snare Drum
+    snare = new Tone.NoiseSynth({
+        noise: { type: 'white' }, // 'white', 'pink', 'brown'
+        envelope: { attack: 0.001, decay: 0.15, sustain: 0, release: 0.2 }
+    }).connect(reverb); // Snare gets space too
+    snare.volume.value = -8;
+
+    // Hi-Hats
+    hats = new Tone.MetalSynth({ // MetalSynth for a sharper, metallic hi-hat
+        frequency: 250,
+        envelope: { attack: 0.001, decay: 0.08, release: 0.05 },
+        harmonicity: 3.1,
+        modulationIndex: 16,
+        resonance: 4000,
+        octaves: 1
+    }).connect(reverb); // Hats get a little space
+    hats.volume.value = -20; // Quieter hats
+
+    // Bass Synth
+    bassSynth = new Tone.MonoSynth({
+        oscillator: { type: 'fmsquare' }, // FM Square for a grittier tone
+        envelope: { attack: 0.01, decay: 0.1, sustain: 0.4, release: 0.5 },
+        filterEnvelope: { attack: 0.01, decay: 0.05, sustain: 0.2, release: 0.5, baseFrequency: 100, octaves: 3.5 }
+    }).connect(reverb); // Bass through effects chain
+    bassSynth.volume.value = -9;
+
+    // Lead Synth (Arpeggiator)
+    leadSynth = new Tone.FMSynth({ // FM Synthesis can create interesting metallic/sci-fi tones
+        harmonicity: 1.5,
+        modulationIndex: 5,
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.4 },
+        modulation: { type: "triangle" },
+        modulationEnvelope: { attack: 0.05, decay: 0.1, sustain: 0.2, release: 0.3 }
+    }).connect(reverb); // Lead through effects chain
+    leadSynth.volume.value = -15;
+
+
+    // --- Sequences ---
+    Tone.Transport.bpm.value = BPM;
+
+    // Kick Sequence
+    kickSequence = new Tone.Sequence((time, note) => {
+        kick.triggerAttackRelease(note, '16n', time);
+    }, KICK_PATTERN, '16n').start(0);
+
+    // Snare Sequence
+    snareSequence = new Tone.Sequence((time, note) => {
+        snare.triggerAttackRelease('8n', time); // Note value here determines length
+    }, SNARE_PATTERN, '16n').start(0);
+
+    // Hi-Hat Sequence
+    hatSequence = new Tone.Sequence((time, note) => {
+        hats.triggerAttackRelease('32n', time, 0.6); // Short, slightly quieter velocity
+    }, HAT_PATTERN, '16n').start(0);
+
+    // Bass Sequence
+    bassSequence = new Tone.Sequence((time, note) => {
+        bassSynth.triggerAttackRelease(note, '8n', time);
+    }, BASS_PATTERN, '8n').start(0); // Bass plays 8th notes
+
+    // Lead Loop (Arpeggiator)
+    leadLoop = new Tone.Loop(time => {
+        const randomNoteIndex = Math.floor(Math.random() * SCALE.length);
+        const randomOctaveIndex = Math.floor(Math.random() * LEAD_OCTAVES.length);
+        const note = SCALE[randomNoteIndex] + LEAD_OCTAVES[randomOctaveIndex];
+        const randomVelocity = 0.4 + Math.random() * 0.5; // Velocity between 0.4 and 0.9
+        const randomDuration = ['32n', '16n', '64n'][Math.floor(Math.random() * 3)]; // Vary duration
+
+        leadSynth.triggerAttackRelease(note, randomDuration, time, randomVelocity);
+        // Occasionally add a pitch bend effect for sci-fi feel
+        if (Math.random() < 0.1) { // 10% chance
+             leadSynth.detune.setValueAtTime(0, time); // Reset detune
+             leadSynth.detune.linearRampToValueAtTime(Math.random() * 400 - 200, time + Tone.Time(randomDuration).toSeconds() * 0.8); // Bend within note duration
+        }
+
+    }, '16n').start('1m'); // Start lead after 1 measure, trigger every 16th note
+
+     // --- Make sure Reverb is ready (optional but good practice) ---
+    reverb.ready.then(() => {
+        console.log("Reverb ready!");
+    });
+}
+
+// --- Control ---
+function toggleMusic() {
+    if (!toneStarted) {
+        Tone.start().then(() => {
+            console.log("Audio Context Started");
+            toneStarted = true;
+            setupAudio(); // Setup *after* context is ready
+            startMusic();
+        }).catch(e => {
+            console.error("Error starting Tone.js:", e);
+            alert("Could not start audio. Check browser permissions or Web Audio support.");
+        });
+    } else {
+        if (isPlaying) {
+            stopMusic();
+        } else {
+            startMusic();
+        }
+    }
+}
+
+function startMusic() {
+    if (!kickSequence) { // Check if setup has run
+        console.error("Audio not setup yet!");
+        return;
+    }
+    console.log("Starting Transport & Sequences");
+    // Ensure sequences are started (they might have been stopped explicitly)
+    kickSequence.start(0);
+    snareSequence.start(0);
+    hatSequence.start(0);
+    bassSequence.start(0);
+    leadLoop.start('1m'); // Ensure loop starts correctly relative to transport
+
+    Tone.Transport.start("+0.1"); // Start transport slightly ahead
+    isPlaying = true;
+    startButton.textContent = 'Disengage Audio';
+    startButton.classList.add('stop');
+}
+
+function stopMusic() {
+    console.log("Stopping Transport & Sequences");
+    Tone.Transport.stop();
+
+    // Stop sequences and loops explicitly
+    if (kickSequence) kickSequence.stop(0);
+    if (snareSequence) snareSequence.stop(0);
+    if (hatSequence) hatSequence.stop(0);
+    if (bassSequence) bassSequence.stop(0);
+    if (leadLoop) leadLoop.stop(0);
+
+    Tone.Transport.cancel(0); // Clear any scheduled events
+
+    // Optional: Silence synths immediately or let envelopes release naturally
+    // To silence immediately (can sound abrupt):
+    // if (kick) kick.volume.value = -Infinity; // etc. for all synths
+    // To let them ring out (better for reverb tails etc):
+     if (kick) kick.triggerRelease(Tone.now());
+     if (snare) snare.triggerRelease(Tone.now());
+     // Noise/Metal synths often don't need triggerRelease if envelope is short
+     if (bassSynth) bassSynth.triggerRelease(Tone.now());
+     if (leadSynth) leadSynth.triggerRelease(Tone.now());
+
+
+    isPlaying = false;
+    startButton.textContent = 'Engage Audio';
+    startButton.classList.remove('stop');
+}
+
+// Event Listener
+startButton.addEventListener('click', toggleMusic);
+
+/* File: ./tests/proc-music-1/index.html */
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procedural Sci-Fi Music</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #111;
+            color: #eee;
+            text-align: center;
+        }
+        #controls {
+            background-color: #333;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+            background-color: #0a0;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #0c0;
+        }
+         button.stop {
+             background-color: #a00;
+         }
+         button.stop:hover {
+             background-color: #c00;
+         }
+        p {
+            margin-top: 20px;
+            color: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>Procedural Sci-Fi Soundscape</h1>
+        <button id="startButton">Start Music</button>
+        <p>Click Start to generate ambient sci-fi music.</p>
+        <p>(Uses Tone.js)</p>
+    </div>
+
+    <!-- Include Tone.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Include your script -->
+    <script src="script.js"></script>
+</body>
+</html>
+
+/* File: ./tests/proc-music-1/script.js */
+const startButton = document.getElementById('startButton');
+let isPlaying = false;
+let droneSynth, leadSynth, filter, delay, reverb, droneLoop, arpLoop;
+let toneStarted = false; // Track if Tone.js context has been started
+
+// --- Configuration ---
+const BASE_NOTE = 'C';
+const SCALE = ['C', 'Eb', 'F', 'G', 'Bb']; // C Minor Pentatonic Scale
+const OCTAVES = [3, 4, 5]; // Octaves for the lead synth
+const DRONE_OCTAVE = 2;
+const BPM = 70; // Beats per minute
+
+// Function to setup audio components
+function setupAudio() {
+    // --- Synths ---
+    droneSynth = new Tone.AMSynth({
+        harmonicity: 1.5, // Ratio between carrier and modulator frequency
+        oscillator: { type: 'sine' },
+        envelope: { attack: 2, decay: 1, sustain: 1, release: 4 },
+        modulation: { type: 'square' },
+        modulationEnvelope: { attack: 3, decay: 0.5, sustain: 0.5, release: 4 }
+    }).toDestination(); // Start routing, will be re-routed later
+
+    leadSynth = new Tone.MonoSynth({
+        oscillator: { type: 'sawtooth' },
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.5 },
+        filterEnvelope: { attack: 0.05, decay: 0.1, sustain: 0.1, release: 0.8, baseFrequency: 300, octaves: 4 }
+    }).toDestination(); // Start routing
+
+    // --- Effects ---
+    filter = new Tone.AutoFilter({
+        frequency: "8n", // Speed of the filter sweep
+        baseFrequency: 200,
+        octaves: 5,
+        depth: 0.7
+    }).start(); // Start the filter LFO
+
+    delay = new Tone.FeedbackDelay("4n.", 0.6); // Dotted quarter note delay, 60% feedback
+    reverb = new Tone.Reverb({
+        decay: 10, // Long decay for space
+        wet: 0.7 // Mix of reverb sound
+    });
+
+    // --- Routing ---
+    // Synths -> Filter -> Delay -> Reverb -> Master Output
+    droneSynth.chain(filter, delay, reverb, Tone.Destination);
+    leadSynth.chain(filter, delay, reverb, Tone.Destination);
+
+    // Generate Dry signal path as well for comparison/adjustment if needed
+    // droneSynth.connect(Tone.Destination); // Example of parallel dry signal
+    // leadSynth.connect(Tone.Destination);
+
+     // --- Make sure Reverb is ready ---
+    reverb.ready.then(() => {
+        console.log("Reverb ready!");
+        // You could gate starting the transport until reverb is ready
+        // but for simplicity, we assume it will be ready quickly.
+    });
+
+
+    // --- Musical Logic (Loops) ---
+    Tone.Transport.bpm.value = BPM;
+
+    // Drone Loop
+    droneLoop = new Tone.Loop(time => {
+        // Play a low note, slightly varying pitch and velocity
+        const note = BASE_NOTE + DRONE_OCTAVE;
+        const randomDetune = Math.random() * 10 - 5; // Slight detune +/- 5 cents
+        const randomVelocity = 0.3 + Math.random() * 0.3; // Velocity between 0.3 and 0.6
+        droneSynth.triggerAttackRelease(note, "6m", time, randomVelocity); // Hold for 6 measures
+        droneSynth.detune.setValueAtTime(randomDetune, time); // Apply detune
+        console.log(`Drone triggered: ${note}, Vel: ${randomVelocity.toFixed(2)}, Detune: ${randomDetune.toFixed(1)}`);
+    }, "8m"); // Trigger every 8 measures
+
+    // Arpeggio Loop
+    arpLoop = new Tone.Loop(time => {
+        // Choose a random note from the scale and a random octave
+        const randomNoteIndex = Math.floor(Math.random() * SCALE.length);
+        const randomOctaveIndex = Math.floor(Math.random() * OCTAVES.length);
+        const note = SCALE[randomNoteIndex] + OCTAVES[randomOctaveIndex];
+        const randomVelocity = 0.5 + Math.random() * 0.4; // Velocity between 0.5 and 0.9
+
+        // Trigger the lead synth
+        leadSynth.triggerAttackRelease(note, "32n", time, randomVelocity);
+        // console.log(`Lead triggered: ${note}, Vel: ${randomVelocity.toFixed(2)}`);
+    }, "16n"); // Trigger every 16th note
+}
+
+// --- Control ---
+function toggleMusic() {
+    // Start Tone.js context on the first user interaction
+    if (!toneStarted) {
+        Tone.start().then(() => {
+            console.log("Audio Context Started");
+            toneStarted = true;
+            setupAudio(); // Setup synths/effects *after* context is ready
+            startMusic(); // Actually start the music now
+        }).catch(e => {
+            console.error("Error starting Tone.js:", e);
+            alert("Could not start audio. Your browser might not support the Web Audio API or it was blocked.");
+        });
+    } else {
+        // If Tone is already started, just toggle playback
+        if (isPlaying) {
+            stopMusic();
+        } else {
+            startMusic();
+        }
+    }
+}
+
+function startMusic() {
+     if (!droneLoop || !arpLoop) {
+        console.error("Audio not setup yet!");
+        return; // Don't start if setup hasn't run
+    }
+    console.log("Starting Transport");
+    // Start the loops
+    droneLoop.start(0); // Start immediately on the transport timeline
+    arpLoop.start("1m"); // Start the arp after 1 measure
+
+    Tone.Transport.start();
+    isPlaying = true;
+    startButton.textContent = 'Stop Music';
+    startButton.classList.add('stop');
+}
+
+function stopMusic() {
+    console.log("Stopping Transport");
+    Tone.Transport.stop();
+
+    // Optional: Stop loops explicitly and cancel scheduled events
+    if (droneLoop) droneLoop.stop(0);
+    if (arpLoop) arpLoop.stop(0);
+    Tone.Transport.cancel(0); // Clear scheduled events
+
+     // Optional: Trigger release on synths to allow tails to fade out naturally
+    if (droneSynth) droneSynth.triggerRelease(Tone.now());
+    if (leadSynth) leadSynth.triggerRelease(Tone.now());
+
+
+    isPlaying = false;
+    startButton.textContent = 'Start Music';
+    startButton.classList.remove('stop');
+}
+
+// Event Listener
+startButton.addEventListener('click', toggleMusic);
 
