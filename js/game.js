@@ -22,6 +22,7 @@ class Game {
     this.uiManager = new UIManager();
     this.abilityManager = new AbilityManager(this.uiManager);
     this.particleManager = new ParticleManager();
+    this.audioManager = new AudioManager();
     this.player = new Player(this.width, this.height);
     this.bullets = [];
     this.rockets = [];
@@ -40,13 +41,23 @@ class Game {
     this.gameLoop = this.gameLoop.bind(this);
     window.addEventListener("resize", this.handleResize.bind(this));
   }
-  start() {
+  async start() {
     this.resetGame();
     this.running = true;
     this.paused = false;
     this.uiManager.hideAllScreens();
     this.uiManager.resetUI(this.abilityManager.unlockedAbilities);
     this.lastTimestamp = performance.now();
+
+    // Initialize audio context and start music
+    try {
+      await this.audioManager.initContext(); // Ensure context is ready
+      this.audioManager.playTrackForLevel(this.level);
+    } catch (e) {
+      console.error("Could not start audio:", e);
+      // Optionally inform the user via UI
+    }
+
     this.requestLoop();
     console.log("Game Started");
   }
@@ -55,6 +66,9 @@ class Game {
     this.cancelLoop();
     this.saveHighScore(this.score);
     this.highScores = this.loadHighScores();
+    this.audioManager.stopAll(); // Stop music on game over
+    // Optionally play a game over sound: this.audioManager.playSfx('gameOver');
+
     this.uiManager.showGameOverScreen(
       this.score,
       this.player.maxReachedPower,
@@ -67,9 +81,17 @@ class Game {
     this.paused = !this.paused;
     if (this.paused) {
       this.cancelLoop();
+      // Slightly reduce volume on pause
+      if (this.audioManager.audioContext && !this.audioManager.isMuted) {
+        this.audioManager.masterGain.gain.linearRampToValueAtTime(this.audioManager.currentVolume * 0.5, this.audioManager.audioContext.currentTime + 0.2);
+      }
       this.uiManager.showPauseScreen(this.score);
     } else {
       this.uiManager.hideAllScreens();
+      // Restore volume on resume if changed above
+      if (this.audioManager.audioContext && !this.audioManager.isMuted) {
+        this.audioManager.masterGain.gain.linearRampToValueAtTime(this.audioManager.currentVolume, this.audioManager.audioContext.currentTime + 0.2);
+      }
       this.lastTimestamp = performance.now();
       this.requestLoop();
     }
@@ -92,6 +114,7 @@ class Game {
     this.abilityManager.reset();
     this.player.resetForNewGame(this.width, this.height);
     this.uiManager.resetUI(this.abilityManager.unlockedAbilities);
+    this.audioManager.stopAll(); // Ensure music stops on reset
   }
   handleResize() {
     this.width = window.innerWidth;
@@ -575,9 +598,9 @@ class Game {
     const value =
       type === "xp"
         ? getRandomInt(
-            GAME_CONFIG.items.xpValueMin,
-            GAME_CONFIG.items.xpValueMax
-          )
+          GAME_CONFIG.items.xpValueMin,
+          GAME_CONFIG.items.xpValueMax
+        )
         : 0;
     this.items.push(
       new Item(x, y, type, value)
@@ -628,21 +651,32 @@ class Game {
       GAME_CONFIG.levelScoreBase *
       Math.pow(this.level, GAME_CONFIG.levelScoreExponent);
     if (this.score >= scoreNeeded) {
+      const oldLevel = this.level;
+
       this.level++;
       this.uiManager.updateLevel(this.level);
       this.uiManager.showLevelUpMessage(this.level);
+
+      // Check if music needs to change
+      const oldTrackKey = this.audioManager.getTrackKeyForLevel(oldLevel);
+      const newTrackKey = this.audioManager.getTrackKeyForLevel(this.level);
+      if (newTrackKey !== oldTrackKey) {
+        console.log(`Level ${this.level}: Changing music track...`);
+        this.audioManager.playTrackForLevel(this.level); // Triggers crossfade
+      }
+
+
       const config = GAME_CONFIG.aliens;
       this.alienSpawnInterval = Math.max(
         this.alienSpawnInterval * config.levelSpawnIntervalMultiplier,
         GAME_CONFIG.aliens.initialSpawnInterval *
-          config.levelSpawnIntervalMinFactor
+        config.levelSpawnIntervalMinFactor
       );
       this.minAliensOnScreen = Math.floor(
         config.minOnScreenBase + this.level * config.minOnScreenLevelScale
       );
       console.log(
-        `Level Up! Lvl: ${this.level}, Min Aliens: ${
-          this.minAliensOnScreen
+        `Level Up! Lvl: ${this.level}, Min Aliens: ${this.minAliensOnScreen
         }, Spawn Interval: ${this.alienSpawnInterval.toFixed(0)}`
       );
     }

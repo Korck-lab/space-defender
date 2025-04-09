@@ -1,202 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    />
-    <title>Space Defender Evolved</title>
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
-    />
-    <link rel="stylesheet" href="css/base.css" />
-    <link rel="stylesheet" href="css/ui.css" />
-    <link rel="stylesheet" href="css/abilities.css" />
-  </head>
-  <body>
-    <canvas id="gameCanvas"></canvas>
 
-    <!-- In-Game HUD -->
-    <div id="gameUI">
-      <!-- ... hud content ... -->
-      <div class="ui-section">
-        <div>Score: <span id="score">0</span></div>
-        <div>Lives: <span id="lives">3</span></div>
-      </div>
-      <div class="ui-section">
-        <div>Level: <span id="level">1</span></div>
-        <div>Bullet Lvl: <span id="bulletPower">1/5</span></div>
-        <div class="powerBar">
-          <div class="powerFill" id="powerFill"></div>
-        </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Space Defender Evolved</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/ui.css" />
+  <link rel="stylesheet" href="css/abilities.css" />
+</head>
+
+<body>
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- In-Game HUD -->
+  <div id="gameUI">
+    <!-- ... hud content ... -->
+    <div class="ui-section">
+      <div>Score: <span id="score">0</span></div>
+      <div>Lives: <span id="lives">3</span></div>
+    </div>
+    <div class="ui-section">
+      <div>Level: <span id="level">1</span></div>
+      <div>Bullet Lvl: <span id="bulletPower">1/5</span></div>
+      <div class="powerBar">
+        <div class="powerFill" id="powerFill"></div>
       </div>
     </div>
+  </div>
 
-    <!-- Ability Icons Container -->
-    <div class="abilities-container">
-      <div
-        class="ability"
-        id="ability-bulletMode"
-        title="Switch Bullet Mode (SPACE)"
-      >
-        <div class="ability-icon"><i class="fas fa-exchange-alt"></i></div>
-        <div class="ability-key">SPACE</div>
-        <div class="ability-cooldown"></div>
-      </div>
-      <div class="ability locked" id="ability-rocket" title="Fire Rocket (R)">
-        <div class="ability-icon"><i class="fas fa-rocket"></i></div>
-        <div class="ability-key">R</div>
-        <div class="ability-cooldown"></div>
-      </div>
-      <div
-        class="ability locked"
-        id="ability-wingman"
-        title="Deploy Wingmen (W)"
-      >
-        <div class="ability-icon"><i class="fas fa-robot"></i></div>
-        <div class="ability-key">W</div>
-        <div class="ability-cooldown"></div>
-      </div>
-      <div
-        class="ability locked"
-        id="ability-miniShip"
-        title="Summon Mini Ships (M)"
-      >
-        <div class="ability-icon"><i class="fas fa-space-shuttle"></i></div>
-        <div class="ability-key">M</div>
-        <div class="ability-cooldown"></div>
-      </div>
+  <!-- Ability Icons Container -->
+  <div class="abilities-container">
+    <div class="ability" id="ability-bulletMode" title="Switch Bullet Mode (SPACE)">
+      <div class="ability-icon"><i class="fas fa-exchange-alt"></i></div>
+      <div class="ability-key">SPACE</div>
+      <div class="ability-cooldown"></div>
     </div>
-    <div id="unlockBarContainer">
-      <div id="unlockBarFill"></div>
+    <div class="ability locked" id="ability-rocket" title="Fire Rocket (R)">
+      <div class="ability-icon"><i class="fas fa-rocket"></i></div>
+      <div class="ability-key">R</div>
+      <div class="ability-cooldown"></div>
     </div>
+    <div class="ability locked" id="ability-wingman" title="Deploy Wingmen (W)">
+      <div class="ability-icon"><i class="fas fa-robot"></i></div>
+      <div class="ability-key">W</div>
+      <div class="ability-cooldown"></div>
+    </div>
+    <div class="ability locked" id="ability-miniShip" title="Summon Mini Ships (M)">
+      <div class="ability-icon"><i class="fas fa-space-shuttle"></i></div>
+      <div class="ability-key">M</div>
+      <div class="ability-cooldown"></div>
+    </div>
+  </div>
+  <div id="unlockBarContainer">
+    <div id="unlockBarFill"></div>
+  </div>
 
-    <!-- Start Screen -->
-    <div id="startScreen" class="screen">
-      <!-- ... screen content ... -->
-      <h1>SPACE DEFENDER</h1>
-      <h2>High Scores</h2>
-      <ul id="highScoresList">
-        <li>Loading...</li>
-      </ul>
-      <p class="instructions">
-        Use <span class="highlight">Mouse</span> to move,
-        <span class="highlight">Click</span> to toggle Auto-Fire.<br />
-        <span class="highlight">SPACE</span>/<i class="fas fa-exchange-alt"></i
-        >: Swap Weapon (Resets Lvl). <span class="highlight">ESC</span>:
-        Pause.<br />
-        Score points to unlock abilities: <i class="fas fa-rocket"></i>
-        <i class="fas fa-robot"></i> <i class="fas fa-space-shuttle"></i>.<br />
-        Defeat enemies for Bullet Level Up (<span class="highlight"
-          >5 Kills</span
-        >).<br />
-        <span class="highlight">Scouts</span> passing spawn
-        <span class="highlight">Fighters</span>.
-        <span class="highlight">Fighters/Elites</span> passing kill you!<br />
-        Collect <span class="highlight">⭐</span>XP,
-        <span class="highlight">❤️</span>Lives,
-        <span class="highlight">💣</span>Bombs!
-      </p>
-      <button id="startButton">START MISSION</button>
+  <!-- Start Screen -->
+  <div id="startScreen" class="screen">
+    <!-- ... screen content ... -->
+    <h1>SPACE DEFENDER</h1>
+    <h2>High Scores</h2>
+    <ul id="highScoresList">
+      <li>Loading...</li>
+    </ul>
+    <!-- Music Controls -->
+    <div class="music-controls">
+      <button id="muteButtonStart" title="Toggle Music">
+        <i class="fas fa-volume-high"></i> <!-- Initial Icon -->
+      </button>
+      <input type="range" id="volumeSliderStart" min="0" max="1" step="0.01" title="Volume">
     </div>
+    <p class="instructions">
+      Use <span class="highlight">Mouse</span> to move,
+      <span class="highlight">Click</span> to toggle Auto-Fire.<br />
+      <span class="highlight">SPACE</span>/<i class="fas fa-exchange-alt"></i>: Swap Weapon (Resets Lvl). <span
+        class="highlight">ESC</span>:
+      Pause.<br />
+      Score points to unlock abilities: <i class="fas fa-rocket"></i>
+      <i class="fas fa-robot"></i> <i class="fas fa-space-shuttle"></i>.<br />
+      Defeat enemies for Bullet Level Up (<span class="highlight">5 Kills</span>).<br />
+      <span class="highlight">Scouts</span> passing spawn
+      <span class="highlight">Fighters</span>.
+      <span class="highlight">Fighters/Elites</span> passing kill you!<br />
+      Collect <span class="highlight">⭐</span>XP,
+      <span class="highlight">❤️</span>Lives,
+      <span class="highlight">💣</span>Bombs!
+    </p>
+    <button id="startButton">START MISSION</button>
+  </div>
 
-    <!-- Game Over Screen -->
-    <div id="gameOverScreen" class="screen hidden">
-      <!-- ... screen content ... -->
-      <h1>MISSION FAILED</h1>
-      <p>Final Score: <span id="finalScore">0</span></p>
-      <p>Max Bullet Lvl Reached: <span id="finalPower">1/5</span></p>
-      <h2>High Scores</h2>
-      <ul id="highScoresListGameOver"></ul>
-      <button id="restartButton">TRY AGAIN</button>
-    </div>
+  <!-- Game Over Screen -->
+  <div id="gameOverScreen" class="screen hidden">
+    <!-- ... screen content ... -->
+    <h1>MISSION FAILED</h1>
+    <p>Final Score: <span id="finalScore">0</span></p>
+    <p>Max Bullet Lvl Reached: <span id="finalPower">1/5</span></p>
+    <h2>High Scores</h2>
+    <ul id="highScoresListGameOver"></ul>
+    <button id="restartButton">TRY AGAIN</button>
+  </div>
 
-    <!-- Pause Screen -->
-    <div id="pauseScreen" class="screen hidden">
-      <!-- ... screen content ... -->
-      <h1>GAME PAUSED</h1>
-      <p>Current score: <span id="pauseScore">0</span></p>
-      <button id="resumeButton">RESUME</button>
-      <button id="restartButton2">RESTART</button>
+  <!-- Pause Screen -->
+  <div id="pauseScreen" class="screen hidden">
+    <!-- ... screen content ... -->
+    <h1>GAME PAUSED</h1>
+    <p>Current score: <span id="pauseScore">0</span></p>
+    <!-- Music Controls -->
+    <div class="music-controls">
+      <button id="muteButtonPause" title="Toggle Music">
+        <i class="fas fa-volume-high"></i> <!-- Initial Icon -->
+      </button>
+      <input type="range" id="volumeSliderPause" min="0" max="1" step="0.01" title="Volume">
     </div>
 
-    <!-- Active Ability Duration Timers -->
-    <div class="ability-duration-timer" id="wingmanTimer">Wingmen: 10s</div>
-    <div class="ability-duration-timer" id="miniShipTimer">Mini Ships: 10s</div>
+    <button id="resumeButton">RESUME</button>
+    <button id="restartButton2">RESTART</button>
+  </div>
 
-    <!-- JavaScript Files -->
-    <script src="js/config.js"></script>
-    <script src="js/utils.js"></script>
-    <script src="js/drawing.js"></script>
-    <script src="js/entities.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/abilities.js"></script>
-    <script src="js/input.js"></script>
-    <script src="js/game.js"></script>
+  <!-- Active Ability Duration Timers -->
+  <div class="ability-duration-timer" id="wingmanTimer">Wingmen: 10s</div>
+  <div class="ability-duration-timer" id="miniShipTimer">Mini Ships: 10s</div>
 
-    <!-- Initialization -->
-    <script>
-      window.addEventListener("load", () => {
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
+  <!-- JavaScript Files -->
+  <script src="js/config.js"></script>
+  <script src="js/audio.js"></script>{}
+  <script src="js/utils.js"></script>
+  <script src="js/drawing.js"></script>
+  <script src="js/entities.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/abilities.js"></script>
+  <script src="js/input.js"></script>
+  <script src="js/game.js"></script>
 
-        const game = new Game(canvas, ctx);
+  <!-- Initialization -->
+  <script>
+    window.addEventListener("load", () => {
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
 
-        document
-          .getElementById("startButton")
-          .addEventListener("click", () => game.start());
-        document
-          .getElementById("restartButton")
-          .addEventListener("click", () => game.start());
-        document
-          .getElementById("restartButton2")
-          .addEventListener("click", () => game.start());
-        document
-          .getElementById("resumeButton")
-          .addEventListener("click", () => game.togglePause());
+      const game = new Game(canvas, ctx);
 
-        game.uiManager.highScoresListElementGameOver = document.getElementById(
-          "highScoresListGameOver"
-        );
-        game.uiManager.displayHighScores = function (scores) {
-          const displayList = (listElement) => {
-            if (!listElement) {
-              return;
-            }
-            listElement.innerHTML = "";
-            if (!scores || scores.length === 0) {
-              listElement.innerHTML = "<li>No scores yet!</li>";
-              return;
-            }
-            scores.forEach((score, index) => {
-              const li = document.createElement("li");
-              li.innerHTML = `<span>#${index + 1}</span><span>${score}</span>`;
-              listElement.appendChild(li);
-            });
-          };
-          displayList(this.highScoresListElement);
-          displayList(this.highScoresListElementGameOver);
+      // --- Music Control Event Listeners ---
+      const muteButtonStart = document.getElementById('muteButtonStart');
+      const volumeSliderStart = document.getElementById('volumeSliderStart');
+      const muteButtonPause = document.getElementById('muteButtonPause');
+      const volumeSliderPause = document.getElementById('volumeSliderPause');
+
+      const updateMuteButtons = (isMuted) => {
+        const iconClass = isMuted ? 'fa-volume-mute' : 'fa-volume-high';
+        if (muteButtonStart) muteButtonStart.innerHTML = `<i class="fas ${iconClass}"></i>`;
+        if (muteButtonPause) muteButtonPause.innerHTML = `<i class="fas ${iconClass}"></i>`;
+      };
+
+      const updateVolumeSliders = (volume) => {
+        if (volumeSliderStart) volumeSliderStart.value = volume;
+        if (volumeSliderPause) volumeSliderPause.value = volume;
+      };
+
+      // Initial UI state from AudioManager
+      updateMuteButtons(game.audioManager.isMuted);
+      updateVolumeSliders(game.audioManager.currentVolume);
+
+      const handleMuteClick = async () => { // Make async
+        try {
+          // Ensure context is running before toggling
+          await game.audioManager.initContext();
+          const isMuted = game.audioManager.toggleMute();
+          updateMuteButtons(isMuted);
+          // If music isn't playing yet, start the intro now
+          if (!game.audioManager.isPlaying && !isMuted) {
+            console.log("Starting intro music after mute toggle interaction.");
+            game.audioManager.playIntroMusic().catch(e => console.error("Failed to play intro after mute:", e));
+          }
+
+        } catch (e) {
+          console.error("Error handling mute click:", e);
+        }
+      };
+
+      const handleVolumeChange = async (event) => { // Make async
+        const newVolume = event.target.value;
+        try {
+          // Ensure context is running before setting volume
+          await game.audioManager.initContext();
+          game.audioManager.setVolume(newVolume);
+          updateVolumeSliders(newVolume); // Update both sliders
+          // If music isn't playing yet, start the intro now (unless muted)
+          if (!game.audioManager.isPlaying && !game.audioManager.isMuted) {
+            console.log("Starting intro music after volume change interaction.");
+            game.audioManager.playIntroMusic().catch(e => console.error("Failed to play intro after volume change:", e));
+          }
+
+        } catch (e) {
+          console.error("Error handling volume change:", e);
+        }
+
+      };
+
+      if (muteButtonStart) muteButtonStart.addEventListener('click', handleMuteClick);
+      if (volumeSliderStart) volumeSliderStart.addEventListener('input', handleVolumeChange); // Use 'input' for live update
+      if (muteButtonPause) muteButtonPause.addEventListener('click', handleMuteClick);
+      if (volumeSliderPause) volumeSliderPause.addEventListener('input', handleVolumeChange);
+      // --- End Music Control Listeners ---
+      document
+        .getElementById("startButton")
+        .addEventListener("click", () => game.start());
+      document
+        .getElementById("restartButton")
+        .addEventListener("click", () => game.start());
+      document
+        .getElementById("restartButton2")
+        .addEventListener("click", () => game.start());
+      document
+        .getElementById("resumeButton")
+        .addEventListener("click", () => game.togglePause());
+
+      game.uiManager.highScoresListElementGameOver = document.getElementById(
+        "highScoresListGameOver"
+      );
+      game.uiManager.displayHighScores = function (scores) {
+        const displayList = (listElement) => {
+          if (!listElement) {
+            return;
+          }
+          listElement.innerHTML = "";
+          if (!scores || scores.length === 0) {
+            listElement.innerHTML = "<li>No scores yet!</li>";
+            return;
+          }
+          scores.forEach((score, index) => {
+            const li = document.createElement("li");
+            li.innerHTML = `<span>#${index + 1}</span><span>${score}</span>`;
+            listElement.appendChild(li);
+          });
         };
+        displayList(this.highScoresListElement);
+        displayList(this.highScoresListElementGameOver);
+      };
 
-        game.uiManager.showStartScreen(game.highScores);
+      game.uiManager.showStartScreen(game.highScores);
 
-        canvas.addEventListener("contextmenu", (e) => e.preventDefault());
-        document.body.addEventListener(
-          "touchmove",
-          (e) => {
-            if (e.cancelable) e.preventDefault();
-          },
-          { passive: false }
-        );
+      canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+      document.body.addEventListener(
+        "touchmove",
+        (e) => {
+          if (e.cancelable) e.preventDefault();
+        },
+        { passive: false }
+      );
 
-        console.log("Game Evolved Ready.");
-      });
-    </script>
-  </body>
+      console.log("Game Evolved Ready.");
+    });
+  </script>
+</body>
+
 </html>
-
-
