@@ -4,14 +4,15 @@ class AbilityManager {
     constructor(uiManager) {
         this.uiManager = uiManager;
         this.abilities = {};
-        this.unlockThresholds = {}; // Store score needed to unlock
-        this.unlockedAbilities = new Set(); // Track currently unlocked abilities (for this life)
+        // Track the order of ability acquisition for removing the oldest on death
+        this.abilityAcquisitionOrder = [];
+        // Only bulletMode is initially unlocked
+        this.unlockedAbilities = new Set();
         this.initializeAbilities();
     }
 
     initializeAbilities() {
         const config = GAME_CONFIG.abilities;
-        const unlockConfig = GAME_CONFIG.unlockSystem;
 
         for (const key in config) {
             if (!GAME_CONFIG.abilities.hasOwnProperty(key)) continue; // Ensure it's an ability config
@@ -22,39 +23,38 @@ class AbilityManager {
                 maxCooldown: config[key].maxCooldown,
                 duration: 0,
                 maxDuration: config[key].duration,
-                ready: false, // Start locked abilities as not ready
+                ready: false,
                 active: false,
                 element: document.getElementById(`ability-${key}`),
                 timerElement: document.getElementById(`${key}Timer`),
             };
-            // Store unlock threshold if it exists
-            const unlockKey = `${key}UnlockScore`;
-            if (unlockConfig[unlockKey]) {
-                this.unlockThresholds[key] = unlockConfig[unlockKey];
-            } else {
-                 this.unlockedAbilities.add(key); // Assume unlocked if no threshold (like bulletMode)
-                 this.abilities[key].ready = true; // Make ready if unlocked by default
+
+            // Only bulletMode is unlocked by default
+            if (key === 'bulletMode') {
+                this.unlockedAbilities.add(key);
+                this.abilities[key].ready = true;
             }
         }
         this.updateAllUI(); // Initial UI setup (shows locked state)
     }
 
-    // NEW: Check unlock status based on current life score
-    checkUnlocks(currentLifeScore) {
-        let newlyUnlocked = false;
-        for (const key in this.unlockThresholds) {
-            if (!this.unlockedAbilities.has(key) && currentLifeScore >= this.unlockThresholds[key]) {
-                this.unlockedAbilities.add(key);
-                this.abilities[key].ready = true; // Becomes ready immediately upon unlock
-                this.abilities[key].cooldown = 0; // Ensure cooldown is zeroed
-                newlyUnlocked = true;
-                 console.log(`Ability Unlocked: ${key}`);
-                 // Optional: Add a visual/sound effect for unlock
-            }
+    // Unlock a specific ability
+    unlockAbility(key) {
+        if (this.isUnlocked(key)) return false; // Already unlocked
+
+        if (this.abilities[key]) {
+            this.unlockedAbilities.add(key);
+            this.abilities[key].ready = true; // Becomes ready immediately upon unlock
+            this.abilities[key].cooldown = 0; // Ensure cooldown is zeroed
+
+            // Add to acquisition order to track which was acquired first
+            this.abilityAcquisitionOrder.push(key);
+
+            console.log(`Ability Unlocked: ${key}`);
+            this.updateAbilityUI(key);
+            return true;
         }
-        if (newlyUnlocked) {
-            this.updateAllUI(); // Update UI to show unlocked state
-        }
+        return false;
     }
 
     isUnlocked(key) {
@@ -114,7 +114,7 @@ class AbilityManager {
                     ability.cooldown = 0;
                     ability.ready = true;
                     if (this.isUnlocked(key)) { // Only flash if unlocked
-                       this.uiManager.triggerAbilityReadyFlash(ability.element);
+                        this.uiManager.triggerAbilityReadyFlash(ability.element);
                     }
                 }
                 uiNeedsUpdate = true;
@@ -123,14 +123,14 @@ class AbilityManager {
             if (ability.active) {
                 ability.duration -= deltaTime;
                 if (ability.timerElement) {
-                   this.uiManager.updateDurationTimer(ability.timerElement, ability.duration);
+                    this.uiManager.updateDurationTimer(ability.timerElement, ability.duration);
                 }
                 if (ability.duration <= 0) {
                     ability.duration = 0;
                     ability.active = false;
-                     if (ability.timerElement) {
+                    if (ability.timerElement) {
                         this.uiManager.updateDurationTimer(ability.timerElement, 0, false);
-                     }
+                    }
                     uiNeedsUpdate = true;
                 }
             }
@@ -147,14 +147,14 @@ class AbilityManager {
             this.uiManager.triggerAbilityFeedback(ability.element);
         }
         if (key === 'bulletMode') {
-             this.uiManager.updateBulletModeIcon( /* need current mode */ );
+            this.uiManager.updateBulletModeIcon( /* need current mode */);
         }
     }
 
-     updateBulletModeVisuals(mode) {
+    updateBulletModeVisuals(mode) {
         const ability = this.abilities['bulletMode'];
         if (ability && ability.element) {
-           this.uiManager.updateBulletModeIcon(ability.element, mode);
+            this.uiManager.updateBulletModeIcon(ability.element, mode);
         }
     }
 
@@ -170,9 +170,9 @@ class AbilityManager {
             this.uiManager.updateAbilityCooldownVisual(ability.element, cooldownPercent, !ability.ready);
             this.uiManager.updateAbilityActiveState(ability.element, ability.active);
         } else {
-             // Ensure locked state visuals override others
-             this.uiManager.updateAbilityCooldownVisual(ability.element, 0, false); // Hide cooldown overlay
-             this.uiManager.updateAbilityActiveState(ability.element, false); // Hide active state
+            // Ensure locked state visuals override others
+            this.uiManager.updateAbilityCooldownVisual(ability.element, 0, false); // Hide cooldown overlay
+            this.uiManager.updateAbilityActiveState(ability.element, false); // Hide active state
         }
     }
 
@@ -184,42 +184,51 @@ class AbilityManager {
         this.updateBulletModeVisuals('spread');
     }
 
-    // Reset unlocks when player dies
+    // Remove the oldest ability when player dies
     resetUnlocksOnDeath() {
-        this.unlockedAbilities.clear();
-        // Add back abilities that are unlocked by default (like bulletMode)
-        for (const key in this.abilities) {
-            if (!this.unlockThresholds[key]) {
-                 this.unlockedAbilities.add(key);
-                 this.abilities[key].ready = true; // Ensure default unlocked are ready
-                 this.abilities[key].cooldown = 0;
-                 this.abilities[key].active = false;
-            } else {
-                // Explicitly mark others as not ready if locked again
-                 this.abilities[key].ready = false;
-                 this.abilities[key].cooldown = 0; // Reset cooldown even if locked
-                 this.abilities[key].active = false;
-                 this.abilities[key].duration = 0;
+        // Always keep the bulletMode ability
+        if (this.abilityAcquisitionOrder.length > 0) {
+            // Get the oldest ability that's not bulletMode
+            const oldestAbilityKey = this.abilityAcquisitionOrder.shift();
+
+            if (oldestAbilityKey) {
+                console.log(`Removing oldest ability: ${oldestAbilityKey}`);
+                this.unlockedAbilities.delete(oldestAbilityKey);
+
+                // Reset the ability's state
+                const ability = this.abilities[oldestAbilityKey];
+                if (ability) {
+                    ability.ready = false;
+                    ability.active = false;
+                    ability.cooldown = 0;
+                    ability.duration = 0;
+
+                    // Update UI to show locked state
+                    this.updateAbilityUI(oldestAbilityKey);
+                }
             }
         }
-        this.updateAllUI(); // Update visuals to locked state
+
+        // Return true if there was an ability to remove
+        return this.abilityAcquisitionOrder.length > 0;
     }
 
     // Full reset for new game
     reset() {
-         this.resetUnlocksOnDeath(); // Start by resetting unlocks
-         // Ensure all timers/cooldowns are zeroed
-         for (const key in this.abilities) {
-             const ability = this.abilities[key];
-             ability.cooldown = 0;
-             ability.duration = 0;
-             ability.active = false;
-             if (ability.timerElement) {
-                 this.uiManager.updateDurationTimer(ability.timerElement, 0, false);
-             }
-             // Readiness is handled by resetUnlocksOnDeath
-         }
-         this.updateAllUI();
+        // Clear all unlocked abilities except bulletMode
+        this.unlockedAbilities = new Set(['bulletMode']);
+        this.abilityAcquisitionOrder = [];
+
+        // Reset all abilities to default state
+        for (const key in this.abilities) {
+            const ability = this.abilities[key];
+            ability.ready = key === 'bulletMode'; // Only bulletMode is ready
+            ability.active = false;
+            ability.cooldown = 0;
+            ability.duration = 0;
+        }
+
+        this.updateAllUI();
     }
 }
 

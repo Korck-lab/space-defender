@@ -242,6 +242,21 @@ function drawItem(ctx, item) {
             color = cfg.bombColor;
             glowColor = 'rgba(255, 200, 50, 0.5)';
             break;
+        case 'rocket':
+            icon = '🚀'; // Rocket icon
+            color = cfg.rocketColor;
+            glowColor = 'rgba(255, 120, 50, 0.5)';
+            break;
+        case 'wingman':
+            icon = '👾'; // Alien/robot icon
+            color = cfg.wingmanColor;
+            glowColor = 'rgba(120, 255, 50, 0.5)';
+            break;
+        case 'miniShip':
+            icon = '🛸'; // UFO icon
+            color = cfg.miniShipColor;
+            glowColor = 'rgba(50, 150, 255, 0.5)';
+            break;
         default:
             icon = '?';
             color = 'white';
@@ -252,8 +267,12 @@ function drawItem(ctx, item) {
     const centerY = item.y + item.height / 2;
     const radius = item.width / 1.8;
 
-    // Draw outer glow
-    const glowRadius = radius * 1.5;
+    // Draw outer glow with pulsing effect for ability items
+    const isPowerup = ['rocket', 'wingman', 'miniShip'].includes(item.itemType);
+    const glowRadius = isPowerup ?
+        radius * (1.5 + Math.sin(performance.now() * 0.005) * 0.2) :
+        radius * 1.5;
+
     const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.8, centerX, centerY, glowRadius);
     gradient.addColorStop(0, glowColor);
     gradient.addColorStop(1, 'rgba(0,0,0,0)');

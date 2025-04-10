@@ -34,26 +34,26 @@ class InputHandler {
     }
 
     removeListeners() {
-         this.canvas.removeEventListener('mousemove', this.handleMouseMove);
-         this.canvas.removeEventListener('click', this.handleMouseClick);
-         document.removeEventListener('keydown', this.handleKeyDown);
-         const abilitiesContainer = document.querySelector('.abilities-container');
-         if (abilitiesContainer) {
-             abilitiesContainer.removeEventListener('click', this.handleAbilityClick);
-         }
+        this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+        this.canvas.removeEventListener('click', this.handleMouseClick);
+        document.removeEventListener('keydown', this.handleKeyDown);
+        const abilitiesContainer = document.querySelector('.abilities-container');
+        if (abilitiesContainer) {
+            abilitiesContainer.removeEventListener('click', this.handleAbilityClick);
+        }
     }
 
     // --- Event Handlers ---
 
     handleMouseMove(event) {
         if (this.game.isRunning() && !this.game.isPaused()) {
-             // Calculate mouse position relative to canvas (important if canvas has offset/styling)
-             const rect = this.canvas.getBoundingClientRect();
-             const scaleX = this.canvas.width / rect.width; // Handle CSS scaling
-             // const scaleY = this.canvas.height / rect.height; // Not needed for X target
+            // Calculate mouse position relative to canvas (important if canvas has offset/styling)
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width; // Handle CSS scaling
+            // const scaleY = this.canvas.height / rect.height; // Not needed for X target
 
-             // Use clientX for position relative to viewport
-             const mouseX = (event.clientX - rect.left) * scaleX;
+            // Use clientX for position relative to viewport
+            const mouseX = (event.clientX - rect.left) * scaleX;
             this.player.targetX = mouseX;
         }
     }
@@ -86,6 +86,22 @@ class InputHandler {
                 event.preventDefault();
                 this.game.togglePlayerBulletMode(); // Delegate to game logic
                 break;
+            case 'Digit1': // New keybinding for rocket
+            case 'Numpad1':
+                event.preventDefault();
+                this.game.activateAbility('rocket');
+                break;
+            case 'Digit2': // New keybinding for wingman
+            case 'Numpad2':
+                event.preventDefault();
+                this.game.activateAbility('wingman');
+                break;
+            case 'Digit3': // New keybinding for miniShip
+            case 'Numpad3':
+                event.preventDefault();
+                this.game.activateAbility('miniShip');
+                break;
+            // Keep old keybindings as alternatives for now
             case 'KeyR':
                 event.preventDefault();
                 this.game.activateAbility('rocket');
@@ -95,10 +111,9 @@ class InputHandler {
                 this.game.activateAbility('wingman');
                 break;
             case 'KeyM':
-                 event.preventDefault();
-                 this.game.activateAbility('miniShip');
+                event.preventDefault();
+                this.game.activateAbility('miniShip');
                 break;
-             // Add other keybindings if needed
         }
     }
 
@@ -110,11 +125,11 @@ class InputHandler {
         if (clickedAbility && clickedAbility.id) {
             // Extract the ability key from the ID (e.g., "ability-rocket" -> "rocket")
             const key = clickedAbility.id.replace('ability-', '');
-             if (key === 'bulletMode') {
-                 this.game.togglePlayerBulletMode();
-             } else {
+            if (key === 'bulletMode') {
+                this.game.togglePlayerBulletMode();
+            } else {
                 this.game.activateAbility(key);
-             }
+            }
         }
     }
 }

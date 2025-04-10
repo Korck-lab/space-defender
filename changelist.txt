@@ -1,9 +1,4 @@
-Bullet power will not be reset when changing firing mode;
-Bullet power wont be limmited, however it will have a harder progression (exponential xp need);
-Bullet number will remain limmited, however the ammount of damage will encrease proportionally;
-Being killed will remove 20% of the total Bullet power from both firing modes; 
-Rocket power-up will target an enemies and will chase it;
-Rocket power-up will choose the enemy with most neighbors;
-Rocket power-up will receive area damage;
-Being killed will remove 1/3 of the Power-up xp bar (will drop one power-up per kill);
-ESC/pause menu will display the game instructions;
+miniShip, rocket and wingman abilities will now be a random drop if player do not have it (remove the xp based);
+when player dies, she will loose the oldest ability;
+rocket, wingman and ship abilities will use key numbers 1,2,3 respectivelly;
+when player pickup the ability it will automatically trigger it;

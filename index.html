@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, maximum-scale=1.0, user-scalable=no" />
   <title>Space Defender Evolved</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <link rel="stylesheet" href="css/base.css" />
@@ -39,19 +39,19 @@
         <div class="ability-key">SPACE</div>
         <div class="ability-cooldown"></div>
       </div>
-      <div class="ability locked" id="ability-rocket" title="Fire Rocket (R)">
+      <div class="ability locked" id="ability-rocket" title="Fire Rocket (1)">
         <div class="ability-icon"><i class="fas fa-rocket"></i></div>
-        <div class="ability-key">R</div>
+        <div class="ability-key">1</div>
         <div class="ability-cooldown"></div>
       </div>
-      <div class="ability locked" id="ability-wingman" title="Deploy Wingmen (W)">
+      <div class="ability locked" id="ability-wingman" title="Deploy Wingmen (2)">
         <div class="ability-icon"><i class="fas fa-robot"></i></div>
-        <div class="ability-key">W</div>
+        <div class="ability-key">2</div>
         <div class="ability-cooldown"></div>
       </div>
-      <div class="ability locked" id="ability-miniShip" title="Summon Mini Ships (M)">
+      <div class="ability locked" id="ability-miniShip" title="Summon Mini Ships (3)">
         <div class="ability-icon"><i class="fas fa-space-shuttle"></i></div>
-        <div class="ability-key">M</div>
+        <div class="ability-key">3</div>
         <div class="ability-cooldown"></div>
       </div>
     </div>
@@ -114,6 +114,29 @@
     <!-- ... screen content ... -->
     <h1>GAME PAUSED</h1>
     <p>Current score: <span id="pauseScore">0</span></p>
+
+    <!-- Game Instructions -->
+    <div class="instructions-container">
+      <h2>Game Instructions</h2>
+      <p class="instructions">
+        <span class="highlight">Mouse:</span> Move ship<br>
+        <span class="highlight">Mouse Click:</span> Toggle Auto-Fire<br>
+        <span class="highlight">SPACE:</span> Switch between Spread/Parallel weapon modes<br>
+        <span class="highlight">ESC:</span> Pause/Resume<br>
+        <span class="highlight">1:</span> Activate Rocket (once unlocked)<br>
+        <span class="highlight">2:</span> Deploy Wingmen (once unlocked)<br>
+        <span class="highlight">3:</span> Summon Mini Ships (once unlocked)<br><br>
+        <span class="highlight">Power-ups:</span><br>
+        - Bullet power increases with alien kills<br>
+        - Bullet power is maintained when switching modes<br>
+        - Collect <span class="highlight">⭐</span> for XP, <span class="highlight">❤️</span> for Lives, <span
+          class="highlight">💣</span> for Bombs<br>
+        - Abilities (<span class="highlight">🚀 🤖 🛸</span>) are randomly dropped by enemies<br>
+        - When you die, you lose your oldest ability<br>
+        - Abilities automatically activate when picked up
+      </p>
+    </div>
+
     <!-- Music Controls -->
     <div class="music-controls">
       <button id="muteButtonPause" title="Toggle Music">

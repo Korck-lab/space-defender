@@ -27,7 +27,7 @@ class Entity {
   }
 }
 
-// --- Player Class (No Change) ---
+// --- Player Class (Updated) ---
 class Player extends Entity {
   /* ... */
   constructor(canvasWidth, canvasHeight) {
@@ -48,9 +48,17 @@ class Player extends Entity {
     this.lastShotTime = 0;
     this.shootDelay = config.shootDelay;
     this.autoFire = true;
-    this.bulletPowerLevel = 1;
+
+    // Track power levels separately for spread and parallel modes
     this.bulletMode = "spread";
-    this.kills = 0;
+    this.spreadPowerLevel = 1;
+    this.parallelPowerLevel = 1;
+    this.spreadKills = 0;
+    this.parallelKills = 0;
+
+    // Get the active power level based on current mode
+    this.bulletPowerLevel = 1;
+
     this.maxReachedPower = 1;
     this.currentLifeScore = 0;
     this.invincible = false;
@@ -84,45 +92,108 @@ class Player extends Entity {
     game.addScore(amount);
   }
   increaseKillCount(game) {
-    this.kills++;
-    const newPowerLevel = Math.min(
-      Math.floor(this.kills / GAME_CONFIG.killsPerPowerUp) + 1,
-      GAME_CONFIG.maxBulletPowerLevel
-    );
-    if (newPowerLevel > this.bulletPowerLevel) {
-      this.bulletPowerLevel = newPowerLevel;
-      this.maxReachedPower = Math.max(
-        this.maxReachedPower,
-        this.bulletPowerLevel
+    if (this.bulletMode === "spread") {
+      this.spreadKills++;
+
+      // Calculate how many kills needed for next level using exponential formula
+      const currentLevelKillsNeeded = Math.floor(
+        GAME_CONFIG.killsPerPowerUp *
+        Math.pow(GAME_CONFIG.powerLevelExponent, this.spreadPowerLevel - 1)
       );
-      game.particleManager.createPowerUpEffect(this.x, this.y, this.bulletMode);
-      game.uiManager.updateBulletPower(
-        this.bulletPowerLevel,
-        0,
-        this.bulletPowerLevel === GAME_CONFIG.maxBulletPowerLevel
+
+      // Check if we have enough kills for next level
+      if (this.spreadKills >= currentLevelKillsNeeded && this.spreadPowerLevel < GAME_CONFIG.maxBulletPowerLevel) {
+        this.spreadPowerLevel++;
+        this.spreadKills = 0; // Reset kills counter for next level
+        this.maxReachedPower = Math.max(
+          this.maxReachedPower,
+          this.spreadPowerLevel
+        );
+        game.particleManager.createPowerUpEffect(this.x, this.y, this.bulletMode);
+        game.uiManager.updateBulletPower(
+          this.spreadPowerLevel,
+          0,
+          this.spreadPowerLevel === GAME_CONFIG.maxBulletPowerLevel
+        );
+      } else {
+        // Update progress bar
+        game.uiManager.updateBulletPower(
+          this.spreadPowerLevel,
+          this.spreadKills,
+          false,
+          currentLevelKillsNeeded // Pass the required kills for current level
+        );
+      }
+    } else if (this.bulletMode === "parallel") {
+      this.parallelKills++;
+
+      // Calculate how many kills needed for next level using exponential formula
+      const currentLevelKillsNeeded = Math.floor(
+        GAME_CONFIG.killsPerPowerUp *
+        Math.pow(GAME_CONFIG.powerLevelExponent, this.parallelPowerLevel - 1)
       );
-    } else if (this.bulletPowerLevel < GAME_CONFIG.maxBulletPowerLevel) {
-      game.uiManager.updateBulletPower(
-        this.bulletPowerLevel,
-        this.kills % GAME_CONFIG.killsPerPowerUp,
-        false
-      );
+
+      // Check if we have enough kills for next level
+      if (this.parallelKills >= currentLevelKillsNeeded && this.parallelPowerLevel < GAME_CONFIG.maxBulletPowerLevel) {
+        this.parallelPowerLevel++;
+        this.parallelKills = 0; // Reset kills counter for next level
+        this.maxReachedPower = Math.max(
+          this.maxReachedPower,
+          this.parallelPowerLevel
+        );
+        game.particleManager.createPowerUpEffect(this.x, this.y, this.bulletMode);
+        game.uiManager.updateBulletPower(
+          this.parallelPowerLevel,
+          0,
+          this.parallelPowerLevel === GAME_CONFIG.maxBulletPowerLevel
+        );
+      } else {
+        // Update progress bar
+        game.uiManager.updateBulletPower(
+          this.parallelPowerLevel,
+          this.parallelKills,
+          false,
+          currentLevelKillsNeeded // Pass the required kills for current level
+        );
+      }
     }
   }
   toggleBulletMode(game) {
     this.bulletMode = this.bulletMode === "spread" ? "parallel" : "spread";
-    this.bulletPowerLevel = 1;
-    this.kills = 0;
-    this.maxReachedPower = Math.max(this.maxReachedPower, 1);
-    game.uiManager.updateBulletPower(this.bulletPowerLevel, 0, false);
+    this.bulletPowerLevel = this.bulletMode === "spread" ? this.spreadPowerLevel : this.parallelPowerLevel;
+    // Don't reset bullet power level when changing modes
+    game.uiManager.updateBulletPower(this.bulletPowerLevel, this.bulletMode === "spread" ? this.spreadKills : this.parallelKills % GAME_CONFIG.killsPerPowerUp,
+      this.bulletPowerLevel === GAME_CONFIG.maxBulletPowerLevel);
     return this.bulletMode;
   }
-  loseLife() {
+  loseLife(game) {
     if (this.invincible) return true;
+
     this.lives--;
     this.currentLifeScore = 0;
-    this.bulletPowerLevel = 1;
-    this.kills = 0;
+
+    // --- Bug Fix: Reduce Kill Count instead of resetting power ---
+    const killsPerLevel = GAME_CONFIG.killsPerPowerUp;
+    const penalty = Math.floor(killsPerLevel / 3); // Lose 1/3 of a level's worth of kills
+
+    if (this.bulletMode === "spread") {
+      // Calculate kills required for current level
+      const killsRequiredForCurrentLevel = (this.spreadPowerLevel - 1) * killsPerLevel;
+      // Reduce kills, but don't drop below current level's start
+      this.spreadKills = Math.max(0, this.spreadKills - penalty);
+      // Update UI with correct progress
+      const isMax = this.spreadPowerLevel === GAME_CONFIG.maxBulletPowerLevel;
+      game.uiManager.updateBulletPower(this.spreadPowerLevel, this.spreadKills, isMax);
+    } else {
+      // Same for parallel mode
+      const killsRequiredForCurrentLevel = (this.parallelPowerLevel - 1) * killsPerLevel;
+      this.parallelKills = Math.max(0, this.parallelKills - penalty);
+      const isMax = this.parallelPowerLevel === GAME_CONFIG.maxBulletPowerLevel;
+      game.uiManager.updateBulletPower(this.parallelPowerLevel, this.parallelKills, isMax);
+    }
+
+    game.abilityManager.resetUnlocksOnDeath();
+
     if (this.lives > 0) {
       this.becomeInvincible();
     }
@@ -145,8 +216,10 @@ class Player extends Entity {
     this.y = canvasHeight - config.initialYOffset;
     this.targetX = this.x;
     this.lives = this.initialLives;
-    this.bulletPowerLevel = 1;
-    this.kills = 0;
+    this.spreadPowerLevel = 1;
+    this.parallelPowerLevel = 1;
+    this.spreadKills = 0;
+    this.parallelKills = 0;
     this.maxReachedPower = 1;
     this.bulletMode = "spread";
     this.autoFire = true;
@@ -160,9 +233,13 @@ class Player extends Entity {
     this.x = canvasWidth / 2;
     this.y = canvasHeight - config.initialYOffset;
     this.targetX = this.x;
-    this.bulletPowerLevel = 1;
-    this.kills = 0;
-    this.currentLifeScore = 0;
+
+    // No longer reset power levels here - they're reduced in loseLife() method
+    // The bullet kills are still reset
+    this.spreadKills = 0;
+    this.parallelKills = 0;
+
+    // currentLifeScore is modified in the handlePlayerHit method to reduce by 1/3
     this.lastShotTime = 0;
     this.becomeInvincible();
   }
@@ -244,30 +321,109 @@ class Bullet extends Entity {
   }
 }
 
-// --- Rocket Class (Player Ability) --- (No Change)
+// --- Rocket Class (Updated with neighbor-based targeting and improved movement) ---
 class Rocket extends Entity {
-  /* ... */
   constructor(x, y) {
     const config = GAME_CONFIG.rocket;
-    super(x, y - config.height / 2, config.width, config.height, config.color);
+    super(x - config.width / 2, y, config.width, config.height, config.color);
     this.speedY = config.speedY;
-    this.explosionRadius = config.explosionRadius;
     this.damage = config.damage;
+    this.explosionRadius = config.explosionRadius;
+    this.flameColor = config.flameColor;
+    this.target = null;
+    this.turnSpeed = config.turnRate;
+    this.speed = Math.abs(config.speedY);
+    this.currentAngle = -Math.PI / 2; // Start pointing up
   }
-  update(deltaTime) {
-    this.y += this.speedY * (deltaTime / 16.67);
+
+  update(deltaTime, aliens) {
+    const speedFactor = deltaTime / 16.67;
+
+    // Ensure the rocket always tries to find a target if it doesn't have one or if the current target is inactive
+    if (!this.target || !this.target.active) {
+      this.findBestTarget(aliens);
+    }
+
+    if (this.target) {
+      const targetX = this.target.getCenterX();
+      const targetY = this.target.getCenterY();
+      const desiredAngle = Math.atan2(targetY - this.y, targetX - this.x);
+      let angleDiff = desiredAngle - this.currentAngle;
+
+      // Normalize angle difference
+      while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
+      while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
+
+      // Clamp turn rate
+      const turnAmount = clamp(angleDiff, -this.turnSpeed * speedFactor, this.turnSpeed * speedFactor);
+      this.currentAngle += turnAmount;
+    }
+
+    // Update position based on current angle and speed
+    this.x += Math.cos(this.currentAngle) * this.speed * speedFactor;
+    this.y += Math.sin(this.currentAngle) * this.speed * speedFactor;
+
+    // Deactivate if offscreen
+    if (this.y + this.height < 0) {
+      this.active = false;
+    }
   }
+
+  findBestTarget(aliens) {
+    if (!aliens || aliens.length === 0) return null;
+
+    let bestTarget = null;
+    let maxNeighbors = -1;
+    const neighborRadius = 150;
+
+    for (const alien of aliens) {
+      if (!alien.active || alien.y < -alien.height || alien.y > this.y) continue;
+
+      let neighborCount = 0;
+      for (const otherAlien of aliens) {
+        if (!otherAlien.active || otherAlien === alien) continue;
+        const dx = alien.getCenterX() - otherAlien.getCenterX();
+        const dy = alien.getCenterY() - otherAlien.getCenterY();
+        if (dx * dx + dy * dy < neighborRadius * neighborRadius) {
+          neighborCount++;
+        }
+      }
+
+      if (neighborCount > maxNeighbors) {
+        maxNeighbors = neighborCount;
+        bestTarget = alien;
+      }
+    }
+
+    this.target = bestTarget;
+    return bestTarget;
+  }
+
+  shouldExplode() {
+    // Explode if the rocket is close to its target
+    if (this.target) {
+      const dx = this.getCenterX() - this.target.getCenterX();
+      const dy = this.getCenterY() - this.target.getCenterY();
+      const distanceSquared = dx * dx + dy * dy;
+      return distanceSquared <= this.explosionRadius * this.explosionRadius;
+    }
+    return false;
+  }
+
   draw(ctx) {
+    ctx.save();
+    ctx.translate(this.getCenterX(), this.getCenterY());
+    ctx.rotate(this.currentAngle + Math.PI / 2);
     ctx.fillStyle = this.color;
+    ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+    // Add rocket nose cone
     ctx.beginPath();
-    ctx.moveTo(this.x, this.y);
-    ctx.lineTo(this.x - this.width / 2, this.y + this.height);
-    ctx.lineTo(this.x + this.width / 2, this.y + this.height);
+    ctx.moveTo(0, -this.height / 2 - 5);
+    ctx.lineTo(-this.width / 2, -this.height / 2);
+    ctx.lineTo(this.width / 2, -this.height / 2);
     ctx.closePath();
     ctx.fill();
-  }
-  shouldExplode(canvasHeight) {
-    return this.y < 0;
+    ctx.restore();
   }
 }
 
@@ -688,9 +844,8 @@ class MiniShip extends Entity {
   }
 }
 
-// --- Item Class (No Change) ---
+// --- Item Class (Updated to handle abilities) ---
 class Item extends Entity {
-  /* ... */
   constructor(x, y, type, value = 0) {
     const config = GAME_CONFIG.items;
     super(
@@ -741,6 +896,31 @@ class Item extends Entity {
         break;
       case "bomb":
         game.activateBomb(this.getCenterX(), this.getCenterY());
+        break;
+      // Handle ability item pickups
+      case "rocket":
+      case "wingman":
+      case "miniShip":
+        // Unlock the ability and immediately activate it
+        if (game.abilityManager.unlockAbility(this.itemType)) {
+          game.particleManager.createXpIndicator(
+            this.getCenterX(),
+            this.getCenterY(),
+            `+${this.itemType}`,
+            "#aaffaa"
+          );
+          // Automatically activate the ability
+          game.activateAbility(this.itemType);
+        } else {
+          // If already unlocked, just add some score
+          player.addScore(250, game);
+          game.particleManager.createXpIndicator(
+            this.getCenterX(),
+            this.getCenterY(),
+            "+250 (Already Unlocked)",
+            "#ffffaa"
+          );
+        }
         break;
     }
   }

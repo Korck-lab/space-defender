@@ -2,6 +2,9 @@
 
 const GAME_VERSION = "1.1.0"; // Use semantic versioning
 const LOCAL_STORAGE_VERSION_KEY = "spaceDefenderVersion";
+// Set fixed game dimensions
+const GAME_WIDTH = 800;
+const GAME_HEIGHT = 600;
 
 const GAME_CONFIG = {
   // General
@@ -64,9 +67,12 @@ const GAME_CONFIG = {
     height: 30,
     speedY: -8,
     color: "#ff5500",
-    explosionRadius: 100,
-    damage: 5,
+    explosionRadius: 150, // Increased explosion radius for area damage
+    damage: 8, // Increased damage
     flameColor: "#ffaa00",
+    turnRate: 0.05, // How quickly rockets can turn toward target
+    distanceToStartChasing: 200, // Distance from top when rocket starts targeting
+    areaDamageFalloff: 0.8, // Damage reduces with distance from explosion center
   },
 
   // Wingmen
@@ -109,7 +115,7 @@ const GAME_CONFIG = {
     levelSpawnIntervalMultiplier: 0.985,
     levelSpawnIntervalMinFactor: 0.85,
     levelSpeedMultiplier: 1.06,
-    levelSpeedMinFactor: 1.04,
+    levelSpeedMinFactor: 1.01,
     levelHealthMultiplier: 1.07,
     levelHealthMinFactor: 1.04,
     basePoints: 10,
@@ -159,8 +165,9 @@ const GAME_CONFIG = {
   },
 
   // Power Ups / Leveling
-  killsPerPowerUp: 5,
-  maxBulletPowerLevel: 5,
+  killsPerPowerUp: 5, // Base kills needed for level 1 -> 2
+  powerLevelExponent: 1.5, // Exponential factor for required kills per level
+  maxBulletPowerLevel: 10, // Increased max power level (previously 5)
   levelScoreBase: 1500,
   levelScoreExponent: 1.15,
 
@@ -182,9 +189,15 @@ const GAME_CONFIG = {
     xpColor: "rgba(255, 255, 50, 0.8)", // Yellow with transparency
     lifeColor: "rgba(255, 100, 100, 0.8)", // Red with transparency
     bombColor: "rgba(255, 200, 0, 0.8)", // Orange with transparency
+    // New ability item colors
+    rocketColor: "rgba(255, 85, 0, 0.8)",  // Orange-red for rocket ability
+    wingmanColor: "rgba(85, 170, 0, 0.8)", // Green for wingman ability
+    miniShipColor: "rgba(0, 85, 255, 0.8)", // Blue for miniship ability
     lifeMaxValue: 1,
     bombEffectRadius: 400,
     bombDamage: 50,
+    // Ability drop chances
+    abilityDropChance: 0.15, // Chance of an ability dropping instead of normal item
   },
 
   // Particles & Effects

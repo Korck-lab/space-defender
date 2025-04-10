@@ -6,16 +6,12 @@ class Game {
     this.canvas = canvas;
     this.ctx = ctx;
 
-    // Set fixed game dimensions
-    const GAME_WIDTH = 800;
-    const GAME_HEIGHT = 600;
-
-    this.width = GAME_WIDTH;
-    this.height = GAME_HEIGHT;
+    this.width = GAME_CONFIG.GAME_WIDTH;
+    this.height = GAME_CONFIG.GAME_HEIGHT;
 
     // Set up initial canvas dimensions and scaling
-    this.canvas.width = GAME_WIDTH;
-    this.canvas.height = GAME_HEIGHT;
+    this.canvas.width = GAME_CONFIG.GAME_WIDTH;
+    this.canvas.height = GAME_CONFIG.GAME_HEIGHT;
 
     // Apply initial resizing
     this.handleWindowResize();
@@ -265,7 +261,7 @@ class Game {
     this.particleManager.update(deltaTime);
 
     this.updateEntities(deltaTime, this.bullets, this); // Pass gameRef to bullet update for target finding?
-    this.updateEntities(deltaTime, this.rockets);
+    this.updateEntities(deltaTime, this.rockets, this.aliens);
     this.updateEntities(deltaTime, this.aliens, this.height, this.player);
     this.updateEntities(
       deltaTime,
@@ -300,6 +296,8 @@ class Game {
       const entity = entities[i];
       if (!entity.active) continue;
       entity.update(deltaTime, ...args);
+
+      // Handle offscreen entities
       if (entity.isOffscreen(this.width, this.height)) {
         if (entity instanceof Alien && entity.y > this.height) {
           this.handleAlienLeak(entity, i);
@@ -312,8 +310,12 @@ class Game {
           entity.active = false;
         }
       }
-      if (entity instanceof Rocket && entity.shouldExplode(this.height)) {
-        this.handleRocketExplosion(entity);
+
+      // Only check explosion for Rocket entities
+      if (entity instanceof Rocket) {
+        if (entity.y <= 0 || (entity.target && entity.shouldExplode())) {
+          this.handleRocketExplosion(entity);
+        }
       }
     }
   }
@@ -502,18 +504,26 @@ class Game {
   createPlayerBullets() {
     const pConfig = GAME_CONFIG.player;
     const bConfig = GAME_CONFIG.bullets.player;
-    const power = this.player.bulletPowerLevel;
-    const damage =
-      bConfig.baseDamageMultiplier *
-      (power * 0.5 + 0.5) *
-      (this.player.bulletMode === "parallel"
-        ? bConfig.parallelDamageFactor
-        : 1);
+
+    // Use the correct power level based on current mode
+    const power = this.player.bulletMode === "spread"
+      ? this.player.spreadPowerLevel
+      : this.player.parallelPowerLevel;
+
+    // Increase damage proportionally with power level
+    // power factor now has more impact at higher levels
+    const damageMultiplier = power * 0.25 + 0.75; // Scales better with higher power
+
+    const damage = bConfig.baseDamageMultiplier * damageMultiplier *
+      (this.player.bulletMode === "parallel" ? bConfig.parallelDamageFactor : 1);
+
     if (this.player.bulletMode === "spread") {
       const color = bConfig.colorSpread;
-      for (let i = 0; i < power; i++) {
+      // Number of bullets is still limited but damage increases with power
+      const bulletCount = Math.min(power, 5);
+      for (let i = 0; i < bulletCount; i++) {
         const angleOffset =
-          (i - (power - 1) / 2) * bConfig.spreadAngleMultiplier;
+          (i - (bulletCount - 1) / 2) * bConfig.spreadAngleMultiplier;
         const speedX = Math.sin(angleOffset) * 3;
         this.bullets.push(
           new Bullet(
@@ -529,9 +539,11 @@ class Game {
       }
     } else {
       const color = bConfig.colorParallel;
-      for (let i = 0; i < power; i++) {
+      // Number of bullets is still limited but damage increases with power
+      const bulletCount = Math.min(power, 5);
+      for (let i = 0; i < bulletCount; i++) {
         const xOffset =
-          (i - (power - 1) / 2) * bConfig.parallelOffsetMultiplier;
+          (i - (bulletCount - 1) / 2) * bConfig.parallelOffsetMultiplier;
         this.bullets.push(
           new Bullet(
             this.player.x + xOffset,
@@ -689,7 +701,7 @@ class Game {
     if (source instanceof Alien && alienIndex !== -1) {
       this.handleAlienDestroyed(source, alienIndex, "player_collision");
     }
-    if (!this.player.loseLife()) {
+    if (!this.player.loseLife(this)) {  // Pass 'this' as the game parameter
       this.particleManager.createExplosion(
         this.player.x,
         this.player.y,
@@ -698,11 +710,39 @@ class Game {
       );
       this.gameOver();
     } else {
-      this.player.resetAfterDeath(this.width, this.height);
+      // Store current life score before reducing it
+      const currentLifeScore = this.player.currentLifeScore;
+
+      // Calculate the new life score (2/3 of current - reducing by 1/3)
+      const newLifeScore = Math.floor(currentLifeScore * (2 / 3));
+
+      // Set the player's life score to the reduced value
+      this.player.currentLifeScore = newLifeScore;
+
+      // Remove the oldest ability when the player dies
       this.abilityManager.resetUnlocksOnDeath();
+
+      // Reset position and make player invincible
+      this.player.resetAfterDeath(this.width, this.height);
+
+      // Update UI with current power level based on active bullet mode
+      const bulletMode = this.player.bulletMode;
+      const powerLevel = bulletMode === "spread" ? this.player.spreadPowerLevel : this.player.parallelPowerLevel;
+      const kills = bulletMode === "spread" ? this.player.spreadKills : this.player.parallelKills;
+
       this.uiManager.updateLives(this.player.lives);
-      this.uiManager.updateBulletPower(this.player.bulletPowerLevel, 0, false);
-      this.uiManager.updateUnlockBar(0, this.abilityManager.unlockedAbilities);
+      this.uiManager.updateBulletPower(
+        powerLevel,
+        kills,
+        powerLevel === GAME_CONFIG.maxBulletPowerLevel
+      );
+
+      // Update the unlock bar UI with the current abilities
+      this.uiManager.updateUnlockBar(
+        this.player.currentLifeScore,
+        this.abilityManager.unlockedAbilities
+      );
+
       this.particleManager.createExplosion(
         this.player.x,
         this.player.y,
@@ -710,31 +750,69 @@ class Game {
         20
       );
       console.log("Player died, respawning. Lives left:", this.player.lives);
+      console.log(`Life score reduced from ${currentLifeScore} to ${newLifeScore}`);
     }
   }
   handleRocketExplosion(rocket) {
-    rocket.active = false;
     const explosionX = rocket.getCenterX();
     const explosionY = rocket.getCenterY();
-    this.particleManager.createExplosion(
-      explosionX,
-      explosionY,
-      rocket.color,
-      30 + rocket.width
-    );
+
+    // Create explosion effect
+    this.particleManager.createExplosion(explosionX, explosionY, rocket.color, rocket.explosionRadius * 0.5);
+    this.particleManager.createShockwave(explosionX, explosionY);
+
+    // Apply area damage with falloff
     for (let j = this.aliens.length - 1; j >= 0; j--) {
       const alien = this.aliens[j];
       if (!alien.active) continue;
-      const dist = distance({ x: explosionX, y: explosionY }, alien);
-      if (dist < rocket.explosionRadius) {
-        const destroyed = alien.takeDamage(rocket.damage);
-        if (destroyed) this.handleAlienDestroyed(alien, j, "rocket");
+
+      const dx = explosionX - alien.getCenterX();
+      const dy = explosionY - alien.getCenterY();
+      const distSq = dx * dx + dy * dy;
+
+      if (distSq < rocket.explosionRadius * rocket.explosionRadius) {
+        // Calculate damage falloff based on distance
+        const dist = Math.sqrt(distSq);
+        const distFactor = 1 - (dist / rocket.explosionRadius) * GAME_CONFIG.rocket.areaDamageFalloff;
+        const damage = rocket.damage * Math.max(0, distFactor);
+
+        const destroyed = alien.takeDamage(damage);
+        if (destroyed) {
+          this.handleAlienDestroyed(alien, j, 'rocket_aoe');
+        } else {
+          // Show hit feedback even if not destroyed
+          this.particleManager.createExplosion(alien.getCenterX(), alien.getCenterY(), alien.color, 5);
+        }
       }
     }
+
+    rocket.active = false;
   }
   spawnItem(x, y) {
-    let type = "xp";
     const rand = Math.random();
+    const abilityManager = this.abilityManager;
+
+    // Check if we should spawn an ability item instead of a regular item
+    if (rand < GAME_CONFIG.items.abilityDropChance) {
+      // Build a list of abilities the player doesn't have yet
+      const missingAbilities = [];
+      ["rocket", "wingman", "miniShip"].forEach(ability => {
+        if (!abilityManager.isUnlocked(ability)) {
+          missingAbilities.push(ability);
+        }
+      });
+
+      // If there are abilities to unlock, randomly select one
+      if (missingAbilities.length > 0) {
+        const selectedAbility = missingAbilities[Math.floor(Math.random() * missingAbilities.length)];
+        this.items.push(new Item(x, y, selectedAbility, 0));
+        console.log(`Ability item spawned: ${selectedAbility}`);
+        return;
+      }
+    }
+
+    // If we didn't spawn an ability item, fall back to regular items
+    let type = "xp";
     if (rand < 0.1 && this.player.lives < this.player.maxLives) {
       type = "life";
     } else if (rand < 0.2) {
@@ -742,16 +820,15 @@ class Game {
     } else {
       type = "xp";
     }
-    const value =
-      type === "xp"
-        ? getRandomInt(
-          GAME_CONFIG.items.xpValueMin,
-          GAME_CONFIG.items.xpValueMax
-        )
-        : 0;
-    this.items.push(
-      new Item(x, y, type, value)
-    ); /* console.log(`Item spawned: ${type}`); */
+
+    const value = type === "xp"
+      ? getRandomInt(
+        GAME_CONFIG.items.xpValueMin,
+        GAME_CONFIG.items.xpValueMax
+      )
+      : 0;
+
+    this.items.push(new Item(x, y, type, value));
   }
   activateBomb(x, y) {
     console.log("BOMB ACTIVATED!");
@@ -783,10 +860,14 @@ class Game {
   addScore(amount) {
     if (!this.running) return; // Don't add score if game isn't running
     this.score += amount;
+
+    // Update the score UI
     this.uiManager.updateScore(this.score);
-    // Check unlocks based on player's current life score
-    this.abilityManager.checkUnlocks(this.player.currentLifeScore);
-    // Update UI bar based on player's current life score
+
+    // No longer need to check ability unlocks based on score
+    // as abilities are now acquired from item pickups
+
+    // Update UI bar to show abilities (but don't check for unlocks)
     this.uiManager.updateUnlockBar(
       this.player.currentLifeScore,
       this.abilityManager.unlockedAbilities

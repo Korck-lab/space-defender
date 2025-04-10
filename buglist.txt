@@ -1,0 +1,3 @@
+Rocket ability should explode on hit the target;
+Being killed should remove only 1/3 of the Abilities unlock bar (or drop one ability per kill), but it is reseting to zero;
+Active power-up should not be removed when player dies;

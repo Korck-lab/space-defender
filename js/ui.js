@@ -71,16 +71,15 @@ class UIManager {
   }
 
   // --- Bullet Power ---
-  updateBulletPower(level, killsProgress, isMaxLevel) {
-    // Added isMaxLevel flag
-    this.bulletPowerElement.textContent = `${level}/${this.maxBulletsDisplay}`;
+  updateBulletPower(level, killsProgress, isMaxLevel, currentLevelKillsNeeded = GAME_CONFIG.killsPerPowerUp) {
+    this.bulletPowerElement.textContent = `${level}/${GAME_CONFIG.maxBulletPowerLevel}`;
 
     let progressPercent = 0;
     if (isMaxLevel) {
       progressPercent = 100;
       this.powerFillElement.classList.add("max-level-blink"); // Add blink class
     } else {
-      progressPercent = (killsProgress / GAME_CONFIG.killsPerPowerUp) * 100;
+      progressPercent = (killsProgress / currentLevelKillsNeeded) * 100;
       this.powerFillElement.classList.remove("max-level-blink"); // Remove blink class
     }
     this.powerFillElement.style.width = `${clamp(progressPercent, 0, 100)}%`;
