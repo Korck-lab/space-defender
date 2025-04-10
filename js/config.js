@@ -1,10 +1,15 @@
 // js/config.js
 
+const GAME_VERSION = "1.1.0"; // Use semantic versioning
+const LOCAL_STORAGE_VERSION_KEY = "spaceDefenderVersion";
+
 const GAME_CONFIG = {
   // General
   STAR_COUNT: 350,
   MAX_BULLETS_DISPLAY: 5,
   LOCAL_STORAGE_HISCORE_KEY: "spaceDefenderHighScores",
+  LOCAL_STORAGE_VERSION_KEY: LOCAL_STORAGE_VERSION_KEY, // Add reference to version key
+  GAME_VERSION: GAME_VERSION, // Add reference to version
   INVINCIBILITY_DURATION: 2500,
 
   // Player
@@ -172,11 +177,11 @@ const GAME_CONFIG = {
   items: {
     xpValueMin: 50,
     xpValueMax: 250,
-    dropSpeedY: 2,
-    size: 20,
-    xpColor: "#000000",
-    lifeColor: "#ffffff",
-    bombColor: "#ffff00",
+    dropSpeedY: 1.8,
+    size: 30, // Increased from 20 for better visibility
+    xpColor: "rgba(255, 255, 50, 0.8)", // Yellow with transparency
+    lifeColor: "rgba(255, 100, 100, 0.8)", // Red with transparency
+    bombColor: "rgba(255, 200, 0, 0.8)", // Orange with transparency
     lifeMaxValue: 1,
     bombEffectRadius: 400,
     bombDamage: 50,

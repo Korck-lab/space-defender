@@ -1,0 +1,18 @@
+Player Ship to slightly move in the Y axis;
+Player Ship to have energy shield;
+Player level up to add to all attributes:
+    speed, energy shield, bullet damage, reduced cooldown, increased power-up times, etc;
+Boss level every 3-to-5 levels:
+    bosses could be built as a set of smaller ships, more guns, shared life, etc;
+Safe area after boss level (Mother-ship):
+    manually apply boss points to the ship attributes or use it to:
+        add firing gun slots;
+        chamge or add firing gun modes;
+        add power-up new slots; 
+        change or add power-ups;
+    generates a use-once unique link (save game) which players can resume the game later;
+Global rank;
+Asteroid fields;
+Galaxy map;
+
+

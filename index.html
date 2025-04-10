@@ -14,47 +14,54 @@
 <body>
   <canvas id="gameCanvas"></canvas>
 
-  <!-- In-Game HUD -->
-  <div id="gameUI">
-    <!-- ... hud content ... -->
-    <div class="ui-section">
-      <div>Score: <span id="score">0</span></div>
-      <div>Lives: <span id="lives">3</span></div>
-    </div>
-    <div class="ui-section">
-      <div>Level: <span id="level">1</span></div>
-      <div>Bullet Lvl: <span id="bulletPower">1/5</span></div>
-      <div class="powerBar">
-        <div class="powerFill" id="powerFill"></div>
+  <!-- Container to keep all UI elements within canvas bounds -->
+  <div id="gameUiContainer">
+    <!-- In-Game HUD -->
+    <div id="gameUI">
+      <!-- ... hud content ... -->
+      <div class="ui-section">
+        <div>Score: <span id="score">0</span></div>
+        <div>Lives: <span id="lives">3</span></div>
+      </div>
+      <div class="ui-section">
+        <div>Level: <span id="level">1</span></div>
+        <div>Bullet Lvl: <span id="bulletPower">1/5</span></div>
+        <div class="powerBar">
+          <div class="powerFill" id="powerFill"></div>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- Ability Icons Container -->
-  <div class="abilities-container">
-    <div class="ability" id="ability-bulletMode" title="Switch Bullet Mode (SPACE)">
-      <div class="ability-icon"><i class="fas fa-exchange-alt"></i></div>
-      <div class="ability-key">SPACE</div>
-      <div class="ability-cooldown"></div>
+    <!-- Ability Icons Container -->
+    <div class="abilities-container">
+      <div class="ability" id="ability-bulletMode" title="Switch Bullet Mode (SPACE)">
+        <div class="ability-icon"><i class="fas fa-exchange-alt"></i></div>
+        <div class="ability-key">SPACE</div>
+        <div class="ability-cooldown"></div>
+      </div>
+      <div class="ability locked" id="ability-rocket" title="Fire Rocket (R)">
+        <div class="ability-icon"><i class="fas fa-rocket"></i></div>
+        <div class="ability-key">R</div>
+        <div class="ability-cooldown"></div>
+      </div>
+      <div class="ability locked" id="ability-wingman" title="Deploy Wingmen (W)">
+        <div class="ability-icon"><i class="fas fa-robot"></i></div>
+        <div class="ability-key">W</div>
+        <div class="ability-cooldown"></div>
+      </div>
+      <div class="ability locked" id="ability-miniShip" title="Summon Mini Ships (M)">
+        <div class="ability-icon"><i class="fas fa-space-shuttle"></i></div>
+        <div class="ability-key">M</div>
+        <div class="ability-cooldown"></div>
+      </div>
     </div>
-    <div class="ability locked" id="ability-rocket" title="Fire Rocket (R)">
-      <div class="ability-icon"><i class="fas fa-rocket"></i></div>
-      <div class="ability-key">R</div>
-      <div class="ability-cooldown"></div>
+    <div id="unlockBarContainer">
+      <div id="unlockBarFill"></div>
     </div>
-    <div class="ability locked" id="ability-wingman" title="Deploy Wingmen (W)">
-      <div class="ability-icon"><i class="fas fa-robot"></i></div>
-      <div class="ability-key">W</div>
-      <div class="ability-cooldown"></div>
-    </div>
-    <div class="ability locked" id="ability-miniShip" title="Summon Mini Ships (M)">
-      <div class="ability-icon"><i class="fas fa-space-shuttle"></i></div>
-      <div class="ability-key">M</div>
-      <div class="ability-cooldown"></div>
-    </div>
-  </div>
-  <div id="unlockBarContainer">
-    <div id="unlockBarFill"></div>
+
+    <!-- Active Ability Duration Timers -->
+    <div class="ability-duration-timer" id="wingmanTimer">Wingmen: 10s</div>
+    <div class="ability-duration-timer" id="miniShipTimer">Mini Ships: 10s</div>
   </div>
 
   <!-- Start Screen -->
@@ -118,10 +125,6 @@
     <button id="resumeButton">RESUME</button>
     <button id="restartButton2">RESTART</button>
   </div>
-
-  <!-- Active Ability Duration Timers -->
-  <div class="ability-duration-timer" id="wingmanTimer">Wingmen: 10s</div>
-  <div class="ability-duration-timer" id="miniShipTimer">Mini Ships: 10s</div>
 
   <!-- JavaScript Files -->
   <script src="js/config.js"></script>

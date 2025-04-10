@@ -534,9 +534,8 @@ class Debris extends Particle {
   }
 }
 
-// --- Wingman Class (No Change) ---
+// --- Wingman Class ---
 class Wingman extends Entity {
-  /* ... */
   constructor(playerX, playerY, offsetX) {
     const config = GAME_CONFIG.wingman;
     super(
@@ -552,16 +551,48 @@ class Wingman extends Entity {
     this.targetY = this.y;
     this.followLerpFactor = config.followLerpFactor;
     this.lastShotTime = 0;
-    this.shootDelay = config.shootDelay;
+    this.shootDelay = config.shootDelay || 800;
     this.cockpitColor = config.cockpitColor;
     this.engineColor = config.engineColor;
   }
+
   update(deltaTime, player, aliens, game) {
     this.targetX = player.x + this.offsetX;
     this.targetY = player.y + this.offsetY;
     this.x += (this.targetX - this.x) * this.followLerpFactor;
     this.y += (this.targetY - this.y) * this.followLerpFactor;
+
+    // Add shooting logic for wingmen
+    const currentTime = performance.now();
+    if (currentTime - this.lastShotTime >= this.shootDelay) {
+      // Find potential targets (nearby active aliens)
+      const potentialTargets = aliens.filter((a) => a.active && a.y > 0);
+      if (potentialTargets.length > 0) {
+        // Simple firing logic - straight line shots
+        const bulletConfig = GAME_CONFIG.bullets.player;
+        game.bullets.push(
+          new Bullet(
+            this.getCenterX(),
+            this.y - this.height / 2,
+            { ...bulletConfig, color: this.color },
+            0,
+            bulletConfig.speedY,
+            bulletConfig.baseDamageMultiplier,
+            "wingman"
+          )
+        );
+        this.lastShotTime = currentTime;
+
+        // Create muzzle flash effect
+        game.particleManager.createMuzzleFlash(
+          this.getCenterX(),
+          this.y - this.height / 2,
+          this.color
+        );
+      }
+    }
   }
+
   draw(ctx) {
     drawGenericShip(
       ctx,
@@ -601,22 +632,20 @@ class MiniShip extends Entity {
   }
 
   update(deltaTime, player, aliens, game) {
-    // Movement Logic (unchanged)
-    this.findTarget(aliens); // Find a target if needed
-    let targetX, targetY;
-    if (this.targetAlien) {
-      targetX = this.targetAlien.getCenterX();
-      targetY = this.targetAlien.getCenterY();
-    } else {
-      targetX =
-        player.x +
-        (this.index - Math.floor(GAME_CONFIG.miniShip.count / 2)) *
-          GAME_CONFIG.miniShip.spreadOffset *
-          0.8; // Return to formation
-      targetY = player.y - this.returnOffsetY;
-    }
+    // Movement Logic - Always stay in formation with player, don't chase enemies
+    const targetX =
+      player.x +
+      (this.index - Math.floor(GAME_CONFIG.miniShip.count / 2)) *
+      GAME_CONFIG.miniShip.spreadOffset *
+      0.8; // Formation position
+    const targetY = player.y - this.returnOffsetY;
+
+    // Move toward formation position
     this.x += (targetX - this.x) * this.followLerpFactor;
     this.y += (targetY - this.y) * this.followLerpFactor;
+
+    // Find target for shooting, not for movement
+    this.findTarget(aliens);
 
     // --- Shooting Logic ---
     const currentTime = performance.now();
@@ -631,10 +660,6 @@ class MiniShip extends Entity {
         const target = potentialTargets[0]; // Shoot closest
         game.shootMiniShipRocket(this, target);
         this.lastShotTime = currentTime; // Reset cooldown after firing
-
-        // TODO: Implement multi-target logic if desired
-        // Could involve looping through 'potentialTargets' up to 'maxTargets'
-        // and assigning targets round-robin or based on miniship index.
       }
     }
   }

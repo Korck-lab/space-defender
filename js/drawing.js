@@ -94,11 +94,11 @@ function _drawPlayerShipShape(ctx, config, bufferWidth, bufferHeight, colorOverr
         ctx.arc(centerX, centerY - config.height / 5, config.width / 4, 0, Math.PI * 2);
         ctx.fill();
     } else {
-         // Simple overlay cockpit
-         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
-         ctx.beginPath();
-         ctx.arc(centerX, centerY - config.height / 5, config.width / 4, 0, Math.PI * 2);
-         ctx.fill();
+        // Simple overlay cockpit
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY - config.height / 5, config.width / 4, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
@@ -191,24 +191,24 @@ function drawHealthBar(ctx, x, y, width, height, currentHealth, maxHealth) {
 }
 
 function drawGenericShip(ctx, x, y, width, height, color, cockpitColor, engineColor) {
-     ctx.fillStyle = color;
-     ctx.beginPath();
-     ctx.moveTo(x, y - height / 2);
-     ctx.lineTo(x - width / 3, y - height / 4);
-     ctx.lineTo(x - width / 2, y + height / 2);
-     ctx.lineTo(x, y + height / 3);
-     ctx.lineTo(x + width / 2, y + height / 2);
-     ctx.lineTo(x + width / 3, y - height / 4);
-     ctx.closePath();
-     ctx.fill();
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x, y - height / 2);
+    ctx.lineTo(x - width / 3, y - height / 4);
+    ctx.lineTo(x - width / 2, y + height / 2);
+    ctx.lineTo(x, y + height / 3);
+    ctx.lineTo(x + width / 2, y + height / 2);
+    ctx.lineTo(x + width / 3, y - height / 4);
+    ctx.closePath();
+    ctx.fill();
 
-     if (cockpitColor) {
+    if (cockpitColor) {
         ctx.fillStyle = cockpitColor;
         ctx.beginPath();
         ctx.arc(x, y - height / 3, width / 5, 0, Math.PI * 2);
         ctx.fill();
-     }
-     if (engineColor) {
+    }
+    if (engineColor) {
         ctx.fillStyle = engineColor;
         ctx.beginPath();
         ctx.moveTo(x - width / 4, y + height / 3);
@@ -216,39 +216,67 @@ function drawGenericShip(ctx, x, y, width, height, color, cockpitColor, engineCo
         ctx.lineTo(x + width / 4, y + height / 3);
         ctx.closePath();
         ctx.fill();
-     }
+    }
 }
 
-// NEW: Draw Item function
+// NEW: Draw Item function with improved visuals
 function drawItem(ctx, item) {
     const cfg = GAME_CONFIG.items;
     let icon;
-    let color = 'white';
+    let color;
+    let glowColor;
 
-    switch(item.itemType) {
+    switch (item.itemType) {
         case 'xp':
-            icon = '⭐'; // Or draw a coin/star shape
+            icon = '⭐'; // Star icon
             color = cfg.xpColor;
+            glowColor = 'rgba(255, 255, 100, 0.4)';
             break;
         case 'life':
-            icon = '❤️'; // Or draw a heart shape
+            icon = '❤️'; // Heart icon
             color = cfg.lifeColor;
+            glowColor = 'rgba(255, 150, 150, 0.5)';
             break;
         case 'bomb':
-            icon = '💣'; // Or draw a bomb shape
+            icon = '💣'; // Bomb icon
             color = cfg.bombColor;
+            glowColor = 'rgba(255, 200, 50, 0.5)';
             break;
         default:
             icon = '?';
+            color = 'white';
+            glowColor = 'rgba(255, 255, 255, 0.3)';
     }
 
-    // Draw a simple circle background
-    drawCircle(ctx, item.x + item.width / 2, item.y + item.height / 2, item.width / 2 + 2, 'rgba(0,0,0,0.5)');
-    drawCircle(ctx, item.x + item.width / 2, item.y + item.height / 2, item.width / 2, color);
+    const centerX = item.x + item.width / 2;
+    const centerY = item.y + item.height / 2;
+    const radius = item.width / 1.8;
+
+    // Draw outer glow
+    const glowRadius = radius * 1.5;
+    const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.8, centerX, centerY, glowRadius);
+    gradient.addColorStop(0, glowColor);
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw item background with transparency
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Add a subtle inner highlight
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.beginPath();
+    ctx.arc(centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.4, 0, Math.PI * 2);
+    ctx.fill();
 
     // Draw icon text inside
-    drawText(ctx, icon, item.x + item.width / 2, item.y + item.height / 2, 'black', cfg.size * 0.7);
-
+    drawText(ctx, icon, centerX, centerY, 'white', cfg.size * 0.7);
 }
 
 

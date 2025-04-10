@@ -1,6 +1,18 @@
 /* css/ui.css */
 
-/* ... existing styles for #gameUI, .ui-section, .powerBar, .powerFill, .max-level-blink ... */
+/* Add a container to position UI elements within the game canvas bounds */
+#gameUiContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  /* Allow clicks to pass through to canvas */
+  overflow: hidden;
+}
+
+/* Updated positioning for game UI */
 #gameUI {
   position: absolute;
   top: 15px;
@@ -12,8 +24,10 @@
   padding: 8px 15px;
   border-radius: 10px;
   display: flex;
-  gap: 15px;
-  z-index: 5;
+  gap: 20px;
+  z-index: 10;
+  pointer-events: auto;
+  /* Restore click handling */
   align-items: center;
 }
 
@@ -56,27 +70,31 @@
   }
 }
 
-/* --- Unlock Bar (Repositioned Absolutely) --- */
+/* Updated positioning for abilities container */
+.abilities-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  gap: 12px;
+  z-index: 10;
+  pointer-events: auto;
+  /* Restore click handling */
+}
+
+/* Updated positioning for unlock bar */
 #unlockBarContainer {
   position: absolute;
-  top: 75px;
+  top: 80px;
   right: 20px;
-  align-items: center;
-  width: 165px;
-  /* Or adjust width as desired */
-  height: 8px;
-  background: rgba(50, 50, 50, 0.7);
-  /* Slightly darker background */
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 4px;
-  z-index: 5;
-  /* Same level as other UI elements */
-  box-sizing: border-box;
+  width: 240px;
+  height: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
   overflow: hidden;
-  /* Ensure it's visible */
-  display: block;
-  visibility: visible;
-  opacity: 1;
+  z-index: 10;
+  pointer-events: auto;
+  /* Restore click handling */
 }
 
 #unlockBarFill {
@@ -125,7 +143,36 @@
   }
 }
 
-/* ... rest of ui.css (Screens, High Scores, Level Up, Timers) ... */
+/* Ensure ability duration timers stay within bounds */
+.ability-duration-timer {
+  position: absolute;
+  right: 20px;
+  font-size: 12px;
+  text-shadow: 0 0 5px currentColor;
+  z-index: 15;
+  display: none;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 5px 10px;
+  border-radius: 5px;
+  pointer-events: auto;
+  /* Restore click handling */
+}
+
+#wingmanTimer {
+  bottom: 80px;
+  color: #55ff00;
+}
+
+#miniShipTimer {
+  bottom: 110px;
+  color: #00aaff;
+}
+
+.ability-duration-timer.visible {
+  display: block;
+}
+
+/* --- Screens, High Scores, Level Up, Timers --- */
 .screen {
   position: absolute;
   top: 0;
@@ -267,32 +314,6 @@
     opacity: 0;
     transform: translate(-50%, -60%);
   }
-}
-
-.ability-duration-timer {
-  position: absolute;
-  right: 20px;
-  font-size: 12px;
-  text-shadow: 0 0 5px currentColor;
-  z-index: 5;
-  display: none;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 5px 10px;
-  border-radius: 5px;
-}
-
-#wingmanTimer {
-  bottom: 80px;
-  color: #55ff00;
-}
-
-#miniShipTimer {
-  bottom: 110px;
-  color: #00aaff;
-}
-
-.ability-duration-timer.visible {
-  display: block;
 }
 
 /* --- Music Controls --- */

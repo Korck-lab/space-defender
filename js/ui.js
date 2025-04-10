@@ -240,12 +240,17 @@ class UIManager {
     element.classList.toggle("parallel-active", mode === "parallel");
   }
 
-  // --- Duration Timers (No Change) ---
-  updateDurationTimer(timerElement, durationMs, isVisible) {
+  // --- Duration Timers ---
+  updateDurationTimer(timerElement, durationMs, isVisible = null) {
     if (!timerElement) return;
-    const shouldShow = isVisible && durationMs > 0;
+
+    // If isVisible is explicitly set (true/false), use that value
+    // Otherwise, determine visibility based on remaining duration
+    const shouldShow = isVisible !== null ? isVisible : durationMs > 0;
+
     timerElement.classList.toggle("visible", shouldShow);
-    if (shouldShow) {
+
+    if (shouldShow && durationMs > 0) {
       const seconds = Math.ceil(durationMs / 1000);
       const baseText =
         timerElement.id === "wingmanTimer" ? "Wingmen: " : "Mini Ships: ";

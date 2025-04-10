@@ -5,8 +5,21 @@ class Game {
   constructor(canvas, ctx) {
     this.canvas = canvas;
     this.ctx = ctx;
-    this.width = canvas.width;
-    this.height = canvas.height;
+
+    // Set fixed game dimensions
+    const GAME_WIDTH = 800;
+    const GAME_HEIGHT = 600;
+
+    this.width = GAME_WIDTH;
+    this.height = GAME_HEIGHT;
+
+    // Set up initial canvas dimensions and scaling
+    this.canvas.width = GAME_WIDTH;
+    this.canvas.height = GAME_HEIGHT;
+
+    // Apply initial resizing
+    this.handleWindowResize();
+
     this.running = false;
     this.paused = false;
     this.score = 0;
@@ -39,9 +52,12 @@ class Game {
     initStarfield(this.width, this.height);
     createPlayerBuffer(GAME_CONFIG.player);
     this.gameLoop = this.gameLoop.bind(this);
-    window.addEventListener("resize", this.handleResize.bind(this));
+    window.addEventListener("resize", this.handleWindowResize.bind(this));
   }
   async start() {
+    // Check game version against stored version
+    this.checkGameVersion();
+
     this.resetGame();
     this.running = true;
     this.paused = false;
@@ -61,6 +77,22 @@ class Game {
     this.requestLoop();
     console.log("Game Started");
   }
+
+  checkGameVersion() {
+    const storedVersion = localStorage.getItem(GAME_CONFIG.LOCAL_STORAGE_VERSION_KEY);
+    const currentVersion = GAME_CONFIG.GAME_VERSION;
+
+    if (storedVersion !== currentVersion) {
+      console.log(`Game version changed: ${storedVersion || 'none'} -> ${currentVersion}`);
+
+      // Clear potentially incompatible data
+      localStorage.removeItem(GAME_CONFIG.LOCAL_STORAGE_HISCORE_KEY);
+
+      // Store the new version
+      localStorage.setItem(GAME_CONFIG.LOCAL_STORAGE_VERSION_KEY, currentVersion);
+    }
+  }
+
   gameOver() {
     this.running = false;
     this.cancelLoop();
@@ -116,13 +148,74 @@ class Game {
     this.uiManager.resetUI(this.abilityManager.unlockedAbilities);
     this.audioManager.stopAll(); // Ensure music stops on reset
   }
-  handleResize() {
-    this.width = window.innerWidth;
-    this.height = window.innerHeight;
-    this.canvas.width = this.width;
-    this.canvas.height = this.height;
-    initStarfield(this.width, this.height);
-    this.player.y = this.height - GAME_CONFIG.player.initialYOffset;
+  // Updated handleWindowResize for fixed logical canvas size and UI positioning
+  handleWindowResize() {
+    const GAME_WIDTH = 800; // Fixed logical width
+    const GAME_HEIGHT = 600; // Fixed logical height
+    const aspectRatio = GAME_WIDTH / GAME_HEIGHT;
+
+    // Set the fixed logical size for game calculations
+    this.width = GAME_WIDTH;
+    this.height = GAME_HEIGHT;
+
+    // Physical canvas size will be set based on window dimensions while maintaining aspect ratio
+    let displayWidth = window.innerWidth;
+    let displayHeight = window.innerHeight;
+
+    // Calculate the scaling factor to fit the screen while maintaining aspect ratio
+    const screenRatio = displayWidth / displayHeight;
+
+    if (screenRatio > aspectRatio) {
+      // Window is wider than our target ratio
+      displayWidth = displayHeight * aspectRatio;
+    } else {
+      // Window is taller than our target ratio
+      displayHeight = displayWidth / aspectRatio;
+    }
+
+    // Set the canvas display size with CSS (this handles the visual scaling)
+    this.canvas.style.width = `${displayWidth}px`;
+    this.canvas.style.height = `${displayHeight}px`;
+
+    // Set the logical canvas resolution for proper rendering
+    this.canvas.width = GAME_WIDTH;
+    this.canvas.height = GAME_HEIGHT;
+
+    // Center the canvas
+    this.canvas.style.position = 'absolute';
+    this.canvas.style.left = `${(window.innerWidth - displayWidth) / 2}px`;
+    this.canvas.style.top = `${(window.innerHeight - displayHeight) / 2}px`;
+
+    // Ensure UI elements follow the canvas position and scaling
+    const gameUiContainer = document.getElementById("gameUiContainer") || document.body;
+    if (gameUiContainer) {
+      // Position the UI container to match the canvas position and size
+      gameUiContainer.style.position = 'absolute';
+      gameUiContainer.style.left = `${(window.innerWidth - displayWidth) / 2}px`;
+      gameUiContainer.style.top = `${(window.innerHeight - displayHeight) / 2}px`;
+      gameUiContainer.style.width = `${displayWidth}px`;
+      gameUiContainer.style.height = `${displayHeight}px`;
+    }
+
+    // Specifically update the abilities container and unlock bar positions to stay within bounds
+    const abilitiesContainer = document.querySelector('.abilities-container');
+    if (abilitiesContainer) {
+      abilitiesContainer.style.position = 'absolute';
+      abilitiesContainer.style.right = '20px';
+      abilitiesContainer.style.top = '20px';
+    }
+
+    const unlockBarContainer = document.getElementById('unlockBarContainer');
+    if (unlockBarContainer) {
+      unlockBarContainer.style.position = 'absolute';
+      unlockBarContainer.style.top = '80px';
+      unlockBarContainer.style.right = '20px';
+    }
+
+    // Redraw if needed
+    if (this.running) {
+      this.draw();
+    }
   }
   loadHighScores() {
     const scoresJSON = localStorage.getItem(
@@ -225,12 +318,14 @@ class Game {
     }
   }
 
+  // Improved alien spawn function to prevent overlapping
   spawnAliens(deltaTime) {
     this.alienSpawnTimer += deltaTime;
     const activeAlienCount = this.aliens.filter((a) => a.active).length;
     const shouldSpawn =
       this.alienSpawnTimer >= this.alienSpawnInterval ||
       activeAlienCount < this.minAliensOnScreen;
+
     if (shouldSpawn) {
       this.alienSpawnTimer = 0;
       const rand = Math.random();
@@ -240,9 +335,12 @@ class Game {
       let baseSpeed = this.alienBaseSpeed;
       let pointsMultiplier = typeConfig.pointsMultiplier;
       let specificConfig = GAME_CONFIG.aliens.scout;
+
+      // Determine alien type based on probability
       const eliteChance =
         GAME_CONFIG.aliens.spawnRatioElite * (1 + (this.level - 1) * 0.05);
       const fighterChance = GAME_CONFIG.aliens.spawnRatioFighter;
+
       if (rand < eliteChance && this.level > 3) {
         type = "elite";
         specificConfig = GAME_CONFIG.aliens.elite;
@@ -253,14 +351,17 @@ class Game {
         type = "scout";
         specificConfig = GAME_CONFIG.aliens.scout;
       }
+
       typeConfig = specificConfig;
       baseHealth *= typeConfig.healthMultiplier || 1.0;
       baseSpeed *= typeConfig.speedMultiplier || 1.0;
       pointsMultiplier = typeConfig.pointsMultiplier || 1.0;
+
       const size = getRandom(
         typeConfig.sizeMin,
         typeConfig.sizeMin + typeConfig.sizeRange
       );
+
       const health =
         baseHealth +
         (this.level - 1) * 0.5 * (typeConfig.healthMultiplier || 1.0);
@@ -270,15 +371,33 @@ class Game {
       const points = Math.floor(
         (GAME_CONFIG.aliens.basePoints + health * 5) * pointsMultiplier
       );
+
       const color =
         typeConfig.color ||
         `hsl(${getRandom(
           typeConfig.colorHueMin,
           typeConfig.colorHueMin + typeConfig.colorHueRange
         )}, ${typeConfig.saturation}, ${typeConfig.lightness})`;
+
+      // Find a suitable spawn position to avoid overlaps
+      let spawnX;
+      let attempts = 0;
+      const maxAttempts = 10; // Limit attempts to prevent infinite loops
+
+      do {
+        spawnX = Math.random() * (this.width - size);
+        attempts++;
+
+        // Break if we can't find a non-overlapping position after max attempts
+        if (attempts >= maxAttempts) {
+          break;
+        }
+
+      } while (this.isPositionOverlappingAliens(spawnX, -size, size, size));
+
       this.aliens.push(
         new Alien(
-          Math.random() * (this.width - size),
+          spawnX,
           -size,
           size,
           size,
@@ -293,6 +412,34 @@ class Game {
       );
     }
   }
+
+  // Helper method to check if a position would overlap with existing aliens
+  isPositionOverlappingAliens(x, y, width, height) {
+    const margin = width * 0.5; // Add some extra space between aliens
+
+    const rect = {
+      x: x - margin,
+      y: y - margin,
+      width: width + margin * 2,
+      height: height + margin * 2
+    };
+
+    // Check for overlaps with existing aliens
+    for (const alien of this.aliens) {
+      if (!alien.active) continue;
+
+      // Simple rectangle collision check
+      if (rect.x < alien.x + alien.width &&
+        rect.x + rect.width > alien.x &&
+        rect.y < alien.y + alien.height &&
+        rect.y + rect.height > alien.y) {
+        return true; // Overlap detected
+      }
+    }
+
+    return false; // No overlap
+  }
+
   spawnFighterWave(xPos) {
     console.log("Scout leaked, spawning fighters!");
     const count = GAME_CONFIG.aliens.scout.fighterSpawnCount || 1;
