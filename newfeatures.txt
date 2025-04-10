@@ -1,7 +1,7 @@
-Player Ship to slightly move in the Y axis;
-Player Ship to have energy shield;
+Player Ship to have energy shield. It absorbs some hits and charge up quickly after few seconds w/o being hit;
 Player level up to add to all attributes:
-    speed, energy shield, bullet damage, reduced cooldown, increased power-up times, etc;
+    speed, energy shield, bullet damage, reduced cooldown, increased abilities up times, etc;
+When cooldown and abilitie's uptime are close enough, they became always active. (keep config on config.js)  
 Boss level every 3-to-5 levels:
     bosses could be built as a set of smaller ships, more guns, shared life, etc;
 Safe area after boss level (Mother-ship):

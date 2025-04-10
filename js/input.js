@@ -50,11 +50,14 @@ class InputHandler {
             // Calculate mouse position relative to canvas (important if canvas has offset/styling)
             const rect = this.canvas.getBoundingClientRect();
             const scaleX = this.canvas.width / rect.width; // Handle CSS scaling
-            // const scaleY = this.canvas.height / rect.height; // Not needed for X target
+            const scaleY = this.canvas.height / rect.height; // Add Y scaling factor
 
-            // Use clientX for position relative to viewport
+            // Use clientX/Y for position relative to viewport
             const mouseX = (event.clientX - rect.left) * scaleX;
+            const mouseY = (event.clientY - rect.top) * scaleY;
+
             this.player.targetX = mouseX;
+            this.player.targetY = mouseY; // Add Y target position
         }
     }
 

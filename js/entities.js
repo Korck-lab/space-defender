@@ -45,6 +45,7 @@ class Player extends Entity {
     this.lives = this.initialLives;
     this.maxLives = config.maxLives;
     this.targetX = this.x;
+    this.targetY = this.y; // Initialize target Y position
     this.lastShotTime = 0;
     this.shootDelay = config.shootDelay;
     this.autoFire = true;
@@ -64,7 +65,12 @@ class Player extends Entity {
     this.invincible = false;
     this.invincibilityTimer = 0;
     this.invincibilityDuration = GAME_CONFIG.INVINCIBILITY_DURATION;
+
+    // Vertical movement constraints
+    this.minY = canvasHeight - config.initialYOffset * 1.5; // Higher is more restricted
+    this.maxY = canvasHeight - config.initialYOffset * 0.5; // Lower is more restricted
   }
+
   update(deltaTime, canvasWidth) {
     if (this.invincible) {
       this.invincibilityTimer -= deltaTime;
@@ -73,14 +79,26 @@ class Player extends Entity {
         this.invincibilityTimer = 0;
       }
     }
+
+    // X-axis movement
     const dx = this.targetX - this.x;
     this.speed = this.baseSpeed;
     this.x += dx * 0.15;
     this.x = clamp(this.x, this.width / 2, canvasWidth - this.width / 2);
+
+    // Y-axis movement (limited range)
+    // Allow movement only within the defined range near the bottom of the screen
+    const targetY = clamp(this.targetY, this.minY, this.maxY);
+    const dy = targetY - this.y;
+    // Use a smaller factor for Y movement to make it more subtle
+    this.y += dy * 0.05;
+    this.y = clamp(this.y, this.minY, this.maxY);
   }
+
   draw(ctx) {
     drawPlayerFromBuffer(ctx, this);
   }
+
   canShoot(currentTime) {
     return currentTime - this.lastShotTime >= this.shootDelay;
   }
@@ -215,6 +233,9 @@ class Player extends Entity {
     this.x = canvasWidth / 2;
     this.y = canvasHeight - config.initialYOffset;
     this.targetX = this.x;
+    this.targetY = this.y; // Reset target Y position
+    this.minY = canvasHeight - config.initialYOffset * 1.5; // Reset min Y
+    this.maxY = canvasHeight - config.initialYOffset * 0.5; // Reset max Y
     this.lives = this.initialLives;
     this.spreadPowerLevel = 1;
     this.parallelPowerLevel = 1;
@@ -228,11 +249,13 @@ class Player extends Entity {
     this.invincible = false;
     this.invincibilityTimer = 0;
   }
+
   resetAfterDeath(canvasWidth, canvasHeight) {
     const config = GAME_CONFIG.player;
     this.x = canvasWidth / 2;
     this.y = canvasHeight - config.initialYOffset;
     this.targetX = this.x;
+    this.targetY = this.y; // Reset target Y position
 
     // No longer reset power levels here - they're reduced in loseLife() method
     // The bullet kills are still reset

@@ -57,6 +57,10 @@ class Game {
     this.resetGame();
     this.running = true;
     this.paused = false;
+
+    // Hide cursor during gameplay
+    this.canvas.style.cursor = 'none';
+
     this.uiManager.hideAllScreens();
     this.uiManager.resetUI(this.abilityManager.unlockedAbilities);
     this.lastTimestamp = performance.now();
@@ -92,6 +96,10 @@ class Game {
   gameOver() {
     this.running = false;
     this.cancelLoop();
+
+    // Show cursor on game over
+    this.canvas.style.cursor = 'default';
+
     this.saveHighScore(this.score);
     this.highScores = this.loadHighScores();
     this.audioManager.stopAll(); // Stop music on game over
@@ -109,6 +117,10 @@ class Game {
     this.paused = !this.paused;
     if (this.paused) {
       this.cancelLoop();
+
+      // Show cursor when paused
+      this.canvas.style.cursor = 'default';
+
       // Slightly reduce volume on pause
       if (this.audioManager.audioContext && !this.audioManager.isMuted) {
         this.audioManager.masterGain.gain.linearRampToValueAtTime(this.audioManager.currentVolume * 0.5, this.audioManager.audioContext.currentTime + 0.2);
@@ -116,6 +128,10 @@ class Game {
       this.uiManager.showPauseScreen(this.score);
     } else {
       this.uiManager.hideAllScreens();
+
+      // Hide cursor when resuming
+      this.canvas.style.cursor = 'none';
+
       // Restore volume on resume if changed above
       if (this.audioManager.audioContext && !this.audioManager.isMuted) {
         this.audioManager.masterGain.gain.linearRampToValueAtTime(this.audioManager.currentVolume, this.audioManager.audioContext.currentTime + 0.2);
