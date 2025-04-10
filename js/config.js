@@ -9,7 +9,7 @@ const GAME_HEIGHT = 600;
 const GAME_CONFIG = {
   // General
   STAR_COUNT: 350,
-  MAX_BULLETS_DISPLAY: 5,
+  MAX_BULLETS_DISPLAY: 10,
   LOCAL_STORAGE_HISCORE_KEY: "spaceDefenderHighScores",
   LOCAL_STORAGE_VERSION_KEY: LOCAL_STORAGE_VERSION_KEY, // Add reference to version key
   GAME_VERSION: GAME_VERSION, // Add reference to version
@@ -37,7 +37,7 @@ const GAME_CONFIG = {
       height: 15,
       speedY: -10,
       spreadAngleMultiplier: 0.3,
-      parallelOffsetMultiplier: 15,
+      parallelOffsetMultiplier: 10,
       colorSpread: "#00ffff",
       colorParallel: "#00ff00",
       baseDamageMultiplier: 1,
@@ -83,7 +83,7 @@ const GAME_CONFIG = {
     offsetX: 60,
     offsetY: 0,
     color: "#55ff00",
-    // shootDelay: 800, // No shooting logic currently active
+    shootDelay: 200,
     followLerpFactor: 0.1,
     cockpitColor: "rgba(255, 255, 255, 0.2)",
     engineColor: "rgba(150, 255, 100, 0.2)",
@@ -91,12 +91,12 @@ const GAME_CONFIG = {
 
   // Mini Ships
   miniShip: {
-    count: 3,
+    count: 1,
     width: 10,
     height: 15,
     color: "#00aaff",
     shootDelay: 600, // Time between firing bursts
-    burstCount: 1, // How many rockets per ship per burst
+    burstCount: 3, // How many rockets per ship per burst
     maxTargets: 5, // Max simultaneous targets for the group
     followLerpFactor: 0.05,
     cockpitColor: "rgba(255, 255, 255, 0.2)",
@@ -186,9 +186,9 @@ const GAME_CONFIG = {
     xpValueMax: 250,
     dropSpeedY: 1.8,
     size: 30, // Increased from 20 for better visibility
-    xpColor: "rgba(255, 255, 50, 0.8)", // Yellow with transparency
-    lifeColor: "rgba(255, 100, 100, 0.8)", // Red with transparency
-    bombColor: "rgba(255, 200, 0, 0.8)", // Orange with transparency
+    xpColor: "rgba(0, 0, 0, 0)", // Yellow with transparency
+    lifeColor: "rgba(0, 0, 0, 0)", // Red with transparency
+    bombColor: "rgba(255, 255, 253, 0)", // Orange with transparency
     // New ability item colors
     rocketColor: "rgba(255, 85, 0, 0.8)",  // Orange-red for rocket ability
     wingmanColor: "rgba(85, 170, 0, 0.8)", // Green for wingman ability

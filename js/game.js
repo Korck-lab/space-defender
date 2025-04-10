@@ -604,7 +604,7 @@ class Game {
       const bullet = this.bullets[i];
       if (!bullet.active) continue;
 
-      if (bullet.owner === "player" || bullet.owner === "miniShip") {
+      if (bullet.owner === "player" || bullet.owner === "miniShip" || bullet.owner === "wingman") {
         // Player or MiniShip bullets vs Aliens
         for (let j = this.aliens.length - 1; j >= 0; j--) {
           const alien = this.aliens[j];

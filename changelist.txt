@@ -1,4 +1,0 @@
-miniShip, rocket and wingman abilities will now be a random drop if player do not have it (remove the xp based);
-when player dies, she will loose the oldest ability;
-rocket, wingman and ship abilities will use key numbers 1,2,3 respectivelly;
-when player pickup the ability it will automatically trigger it;
