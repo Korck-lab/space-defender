@@ -28,6 +28,13 @@ const GAME_CONFIG = {
     engineColor: "rgba(255, 100, 0, 0.8)",
     initialLives: 3,
     maxLives: 5,
+    // Shield settings
+    shield: {
+      maxCapacity: 2, // Number of hits shield can absorb
+      color: "rgba(64, 200, 255, 0.85)", // Shield visual color
+      rechargeDelay: 3000, // Time without damage before shield starts recharging (ms)
+      rechargeRate: 1000, // Time to recharge one unit (ms)
+    },
   },
 
   // Bullets
@@ -91,7 +98,7 @@ const GAME_CONFIG = {
 
   // Mini Ships
   miniShip: {
-    count: 1,
+    count: 3,
     width: 10,
     height: 15,
     color: "#00aaff",

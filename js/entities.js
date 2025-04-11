@@ -69,6 +69,14 @@ class Player extends Entity {
     // Vertical movement constraints
     this.minY = canvasHeight - config.initialYOffset * 1.5; // Higher is more restricted
     this.maxY = canvasHeight - config.initialYOffset * 0.5; // Lower is more restricted
+
+    // Shield properties
+    this.shieldConfig = config.shield;
+    this.shieldCapacity = this.shieldConfig.maxCapacity;
+    this.shieldActive = this.shieldCapacity > 0;
+    this.lastHitTime = 0;
+    this.shieldRechargeTimer = 0;
+    this.shieldRecharging = false;
   }
 
   update(deltaTime, canvasWidth) {
@@ -77,6 +85,35 @@ class Player extends Entity {
       if (this.invincibilityTimer <= 0) {
         this.invincible = false;
         this.invincibilityTimer = 0;
+      }
+    }
+
+    // Handle shield recharge logic
+    if (this.shieldCapacity < this.shieldConfig.maxCapacity) {
+      // Check if enough time has passed since last hit
+      const timeSinceHit = performance.now() - this.lastHitTime;
+
+      if (timeSinceHit >= this.shieldConfig.rechargeDelay) {
+        // Start or continue recharging
+        if (!this.shieldRecharging) {
+          this.shieldRecharging = true;
+          this.shieldRechargeTimer = 0;
+        } else {
+          this.shieldRechargeTimer += deltaTime;
+
+          // Check if it's time to add a shield point
+          if (this.shieldRechargeTimer >= this.shieldConfig.rechargeRate) {
+            this.shieldCapacity += 1;
+            this.shieldRechargeTimer = 0;
+            this.shieldActive = true;
+
+            // If shield is fully recharged, reset recharging state
+            if (this.shieldCapacity >= this.shieldConfig.maxCapacity) {
+              this.shieldCapacity = this.shieldConfig.maxCapacity;
+              this.shieldRecharging = false;
+            }
+          }
+        }
       }
     }
 
@@ -97,6 +134,53 @@ class Player extends Entity {
 
   draw(ctx) {
     drawPlayerFromBuffer(ctx, this);
+
+    // Draw the shield if it's active
+    if (this.shieldActive && this.shieldCapacity > 0) {
+      this.drawShield(ctx);
+    }
+  }
+
+  // Draw shield around ship
+  drawShield(ctx) {
+    const pulse = 0.3 * Math.sin(performance.now() / 200);
+    const shieldSize = Math.max(this.width, this.height) * 1.65 * (1.0 + pulse / 3.0);
+    const alpha = 0.2 * pulse + (0.2 * (this.shieldCapacity / this.shieldConfig.maxCapacity));
+
+    // Use player's actual position (not getCenterX/Y as the player already displays centered)
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, shieldSize / 2, 0, Math.PI * 2);
+    ctx.fillStyle = this.shieldConfig.color.replace(/[\d\.]+\)$/, `${alpha})`);
+    ctx.fill();
+
+    // Add inner glow
+    ctx.beginPath();
+    ctx.arc(this.x, this.y, shieldSize / 2.5, 0, Math.PI * 2);
+    ctx.strokeStyle = this.shieldConfig.color.replace(/[\d\.]+\)$/, `${alpha * 1.5})`);
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+
+  // Method to handle a hit when the ship has a shield
+  takeDamage() {
+    if (this.invincible) return false; // No damage taken if invincible
+
+    if (this.shieldActive && this.shieldCapacity > 0) {
+      // Shield absorbs the hit
+      this.shieldCapacity -= 1;
+      this.lastHitTime = performance.now();
+      this.shieldRecharging = false;
+
+      // Deactivate shield if depleted
+      if (this.shieldCapacity <= 0) {
+        this.shieldActive = false;
+      }
+
+      return false; // Did not lose a life
+    } else {
+      // No shield, lose a life
+      return true; // Life should be lost
+    }
   }
 
   canShoot(currentTime) {
@@ -248,6 +332,10 @@ class Player extends Entity {
     this.currentLifeScore = 0;
     this.invincible = false;
     this.invincibilityTimer = 0;
+    this.shieldCapacity = this.shieldConfig.maxCapacity; // Reset shield capacity
+    this.shieldActive = true; // Reset shield state
+    this.shieldRechargeTimer = 0;
+    this.shieldRecharging = false;
   }
 
   resetAfterDeath(canvasWidth, canvasHeight) {

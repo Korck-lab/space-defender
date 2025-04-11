@@ -714,9 +714,36 @@ class Game {
   }
   handlePlayerHit(source, alienIndex = -1) {
     if (this.player.invincible) return;
+
     if (source instanceof Alien && alienIndex !== -1) {
       this.handleAlienDestroyed(source, alienIndex, "player_collision");
     }
+
+    // Handle shield functionality
+    const shieldHit = this.player.takeDamage();
+
+    // If shield absorbed the hit, create shield impact effect and return
+    if (shieldHit === false) {
+      // Create shield impact effect
+      const shieldImpactColor = this.player.shieldConfig.color;
+      this.particleManager.createExplosion(
+        this.player.x,
+        this.player.y,
+        shieldImpactColor,
+        15
+      );
+
+      // Optional: Show shield capacity text
+      this.particleManager.createXpIndicator(
+        this.player.x,
+        this.player.y - this.player.height,
+        `Shield: ${this.player.shieldCapacity}/${this.player.shieldConfig.maxCapacity}`,
+        shieldImpactColor
+      );
+      return;
+    }
+
+    // Shield didn't absorb the hit, proceed with normal life loss
     if (!this.player.loseLife(this)) {  // Pass 'this' as the game parameter
       this.particleManager.createExplosion(
         this.player.x,
