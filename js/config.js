@@ -13,7 +13,49 @@ const GAME_CONFIG = {
   LOCAL_STORAGE_HISCORE_KEY: "spaceDefenderHighScores",
   LOCAL_STORAGE_VERSION_KEY: LOCAL_STORAGE_VERSION_KEY, // Add reference to version key
   GAME_VERSION: GAME_VERSION, // Add reference to version
-  INVINCIBILITY_DURATION: 2500,
+  INVINCIBILITY_DURATION: 3000,
+
+  // Ship Configuration
+  ship: {
+    imageFile: "assets/images/player-ship.png",
+    baseSize: { width: 80, height: 100 }, // Base size when loaded
+    scaleFactor: 0.5, // Scale down from the image's native size
+    enginePositions: [
+      { x: -13, y: 12, width: 10, height: 22 }, // Left engine
+      { x: 13, y: 12, width: 10, height: 22 }   // Right engine
+    ],
+    engineColor: "rgba(255, 72, 0, 0.67)",
+    engineIntensityFactor: 0.5, // Factor for engine glow intensity
+    weaponPositions: [
+      { x: -30, y: -15 }, // Left weapon
+      { x: 0, y: -2 },   // Center weapon
+      { x: 30, y: -15 }   // Right weapon
+    ],
+    // Leveling parameters
+    levelUpScale: 1.08, // Ship grows by 8% each level, up to maxLevel
+    maxLevel: 5, // Maximum ship growth level
+    // Ability slots increase with ship level
+    abilitySlotsPerLevel: [1, 2, 2, 3, 3],
+    // Shield configuration
+    shield: {
+      maxCapacity: 2, // Number of hits shield can absorb
+      color: "rgba(0, 255, 174, 0.54)", // Shield visual color
+      rechargeDelay: 3000, // Time without damage before shield starts recharging (ms)
+      rechargeRate: 1000, // Time to recharge one unit (ms)
+      // Visual settings for drawing
+      visual: {
+        baseSize: 2.0, // Fixed multiplier for shield size 
+        pulseFrequency: 0.3, // Intensity of pulse
+        pulseSpeed: 200, // Animation speed for pulse
+        pulseAmplitude: 0.1, // Shield pulse variation (10% of shield size)
+        baseAlpha: 0.1, // Base opacity
+        capacityAlpha: 0.2, // Additional opacity based on shield capacity
+        innerGlowAlpha: 1.5, // Brightness multiplier for inner glow
+        innerCircleSizeFactor: 2.0, // Size divisor for inner glowing circle
+        strokeWidth: 1 // Thickness of inner glow
+      },
+    },
+  },
 
   // Player
   player: {
@@ -28,13 +70,6 @@ const GAME_CONFIG = {
     engineColor: "rgba(255, 100, 0, 0.8)",
     initialLives: 3,
     maxLives: 5,
-    // Shield settings
-    shield: {
-      maxCapacity: 2, // Number of hits shield can absorb
-      color: "rgba(64, 200, 255, 0.85)", // Shield visual color
-      rechargeDelay: 3000, // Time without damage before shield starts recharging (ms)
-      rechargeRate: 1000, // Time to recharge one unit (ms)
-    },
   },
 
   // Bullets

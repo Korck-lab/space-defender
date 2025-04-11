@@ -32,6 +32,7 @@ class Player extends Entity {
   /* ... */
   constructor(canvasWidth, canvasHeight) {
     const config = GAME_CONFIG.player;
+    const shipConfig = GAME_CONFIG.ship;
     super(
       canvasWidth / 2,
       canvasHeight - config.initialYOffset,
@@ -70,13 +71,17 @@ class Player extends Entity {
     this.minY = canvasHeight - config.initialYOffset * 1.5; // Higher is more restricted
     this.maxY = canvasHeight - config.initialYOffset * 0.5; // Lower is more restricted
 
-    // Shield properties
-    this.shieldConfig = config.shield;
+    // Shield properties - now tied to ship config
+    this.shipConfig = shipConfig;
+    this.shieldConfig = shipConfig.shield;
     this.shieldCapacity = this.shieldConfig.maxCapacity;
     this.shieldActive = this.shieldCapacity > 0;
     this.lastHitTime = 0;
     this.shieldRechargeTimer = 0;
     this.shieldRecharging = false;
+
+    // Track current ship level
+    this.shipLevel = 1;
   }
 
   update(deltaTime, canvasWidth) {
@@ -143,21 +148,39 @@ class Player extends Entity {
 
   // Draw shield around ship
   drawShield(ctx) {
-    const pulse = 0.3 * Math.sin(performance.now() / 200);
-    const shieldSize = Math.max(this.width, this.height) * 1.65 * (1.0 + pulse / 3.0);
-    const alpha = 0.2 * pulse + (0.2 * (this.shieldCapacity / this.shieldConfig.maxCapacity));
+    const visualConfig = this.shieldConfig.visual;
 
-    // Use player's actual position (not getCenterX/Y as the player already displays centered)
+    // Calculate pulse effect (a value that oscillates between -1 and 1)
+    const pulseEffect = Math.sin(performance.now() / visualConfig.pulseSpeed);
+
+    // Base shield size with a fixed multiplier
+    const baseShieldSize = Math.max(this.width, this.height) * visualConfig.baseSize;
+
+    // Apply pulse variation - limited to pulseAmplitude % variation
+    const pulseVariation = baseShieldSize * visualConfig.pulseAmplitude * pulseEffect;
+
+    // Final shield size (always positive thanks to the small amplitude)
+    const shieldSize = baseShieldSize + pulseVariation; //Math.max(baseShieldSize + pulseVariation, 1); // Ensure minimum size of 1
+
+    // Calculate alpha based on shield capacity and pulse
+    const alpha = Math.max(
+      0,
+      visualConfig.baseAlpha * pulseEffect +
+      (visualConfig.capacityAlpha * (this.shieldCapacity / this.shieldConfig.maxCapacity))
+    );
+
+    // Draw outer shield
     ctx.beginPath();
     ctx.arc(this.x, this.y, shieldSize / 2, 0, Math.PI * 2);
     ctx.fillStyle = this.shieldConfig.color.replace(/[\d\.]+\)$/, `${alpha})`);
     ctx.fill();
 
-    // Add inner glow
+    // Draw inner glow (always ensure positive radius)
+    const innerRadius = Math.max(1, shieldSize / visualConfig.innerCircleSizeFactor);
     ctx.beginPath();
-    ctx.arc(this.x, this.y, shieldSize / 2.5, 0, Math.PI * 2);
-    ctx.strokeStyle = this.shieldConfig.color.replace(/[\d\.]+\)$/, `${alpha * 1.5})`);
-    ctx.lineWidth = 2;
+    ctx.arc(this.x, this.y, innerRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = this.shieldConfig.color.replace(/[\d\.]+\)$/, `${alpha * visualConfig.innerGlowAlpha})`);
+    ctx.lineWidth = visualConfig.strokeWidth;
     ctx.stroke();
   }
 
@@ -353,6 +376,22 @@ class Player extends Entity {
     // currentLifeScore is modified in the handlePlayerHit method to reduce by 1/3
     this.lastShotTime = 0;
     this.becomeInvincible();
+  }
+
+  updateShipLevel(level, game) {
+    if (level !== this.shipLevel) {
+      const oldLevel = this.shipLevel;
+      this.shipLevel = level;
+
+      // Update ability slots based on the ship level
+      if (game && game.abilityManager) {
+        const availableSlots = this.shipConfig.abilitySlotsPerLevel[Math.min(level - 1, this.shipConfig.abilitySlotsPerLevel.length - 1)];
+        game.abilityManager.updateAvailableAbilitySlots(availableSlots);
+      }
+
+      return true; // Level was updated
+    }
+    return false; // Level unchanged
   }
 }
 

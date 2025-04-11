@@ -8,6 +8,8 @@ class AbilityManager {
         this.abilityAcquisitionOrder = [];
         // Only bulletMode is initially unlocked
         this.unlockedAbilities = new Set();
+        // Track available ability slots (based on ship level)
+        this.availableAbilitySlots = 1; // Default to 1 slot at level 1
         this.initializeAbilities();
     }
 
@@ -38,9 +40,75 @@ class AbilityManager {
         this.updateAllUI(); // Initial UI setup (shows locked state)
     }
 
+    // Update the number of available ability slots based on ship level
+    updateAvailableAbilitySlots(slots) {
+        if (slots !== this.availableAbilitySlots) {
+            const oldSlots = this.availableAbilitySlots;
+            this.availableAbilitySlots = slots;
+
+            // Check if we need to remove abilities due to slot reduction
+            if (slots < oldSlots) {
+                this.enforceAbilitySlotLimit();
+            }
+
+            // Update UI to reflect new slot count
+            this.updateAbilitySlotsDisplay();
+
+            console.log(`Ability slots updated: ${oldSlots} -> ${slots}`);
+            return true; // Slots were updated
+        }
+        return false; // No change in slots
+    }
+
+    // Enforce the limit on abilities based on available slots
+    enforceAbilitySlotLimit() {
+        // Count non-bulletMode abilities (bulletMode doesn't count toward slot limit)
+        const nonBulletModeCount = this.abilityAcquisitionOrder.length;
+
+        // If we have more abilities than slots, remove the oldest ones
+        while (nonBulletModeCount > this.availableAbilitySlots) {
+            // Remove oldest ability
+            if (this.abilityAcquisitionOrder.length > 0) {
+                const oldestAbility = this.abilityAcquisitionOrder.shift();
+                if (oldestAbility) {
+                    this.unlockedAbilities.delete(oldestAbility);
+
+                    // Reset the ability's state
+                    const ability = this.abilities[oldestAbility];
+                    if (ability) {
+                        ability.ready = false;
+                        ability.active = false;
+                        ability.cooldown = 0;
+                        ability.duration = 0;
+
+                        // Update UI to show locked state
+                        this.updateAbilityUI(oldestAbility);
+                    }
+                }
+            }
+        }
+    }
+
+    // Update the visual representation of ability slots
+    updateAbilitySlotsDisplay() {
+        // For future UI enhancement - could highlight available slots
+        // For now, just ensure unlocked abilities don't exceed the slot limit
+
+        // Update all ability elements to reflect current unlocked status
+        this.updateAllUI();
+    }
+
     // Unlock a specific ability
     unlockAbility(key) {
         if (this.isUnlocked(key)) return false; // Already unlocked
+
+        if (key !== 'bulletMode') {
+            // Check if we have a free ability slot (bulletMode doesn't count toward slot limit)
+            if (this.abilityAcquisitionOrder.length >= this.availableAbilitySlots) {
+                console.log(`Cannot unlock ${key}: No available ability slots`);
+                return false; // No available slots
+            }
+        }
 
         if (this.abilities[key]) {
             this.unlockedAbilities.add(key);
@@ -48,7 +116,9 @@ class AbilityManager {
             this.abilities[key].cooldown = 0; // Ensure cooldown is zeroed
 
             // Add to acquisition order to track which was acquired first
-            this.abilityAcquisitionOrder.push(key);
+            if (key !== 'bulletMode') {
+                this.abilityAcquisitionOrder.push(key);
+            }
 
             console.log(`Ability Unlocked: ${key}`);
             this.updateAbilityUI(key);

@@ -1,6 +1,3 @@
-Player Ship to have energy shield. It absorbs some hits and charge up quickly after few seconds w/o being hit;
-Player level up to add to all attributes:
-    speed, energy shield, bullet damage, reduced cooldown, increased abilities up times, etc;
 When cooldown and abilitie's uptime are close enough, they became always active. (keep config on config.js)  
 Boss level every 3-to-5 levels:
     bosses could be built as a set of smaller ships, more guns, shared life, etc;
@@ -12,7 +9,7 @@ Safe area after boss level (Mother-ship):
         change or add power-ups;
     generates a use-once unique link (save game) which players can resume the game later;
 Global rank;
-Asteroid fields;
+Asteroid fields (speedy rocks);
 Galaxy map;
 
 

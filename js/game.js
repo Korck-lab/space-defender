@@ -45,11 +45,25 @@ class Game {
       this.player,
       this.abilityManager
     );
-    initStarfield(this.width, this.height);
-    createPlayerBuffer(GAME_CONFIG.player);
-    this.gameLoop = this.gameLoop.bind(this);
+
+    // Initialize game assets
+    this.initGameAssets();
+
     window.addEventListener("resize", this.handleWindowResize.bind(this));
+    this.gameLoop = this.gameLoop.bind(this);
   }
+
+  // New method to initialize game assets
+  initGameAssets() {
+    initStarfield(this.width, this.height);
+
+    // Load the ship image
+    loadShipImage();
+
+    // Create player buffer (will use image if loaded, or fallback to shape)
+    createPlayerBuffer(GAME_CONFIG.player);
+  }
+
   async start() {
     // Check game version against stored version
     this.checkGameVersion();
@@ -928,6 +942,11 @@ class Game {
       this.uiManager.updateLevel(this.level);
       this.uiManager.showLevelUpMessage(this.level);
 
+      // Update the player's ship level and ability slots based on it
+      // The ship level doesn't necessarily match the game level
+      const newShipLevel = Math.min(this.level, GAME_CONFIG.ship.maxLevel);
+      this.player.updateShipLevel(newShipLevel, this);
+
       // Check if music needs to change
       const oldTrackKey = this.audioManager.getTrackKeyForLevel(oldLevel);
       const newTrackKey = this.audioManager.getTrackKeyForLevel(this.level);
@@ -935,7 +954,6 @@ class Game {
         console.log(`Level ${this.level}: Changing music track...`);
         this.audioManager.playTrackForLevel(this.level); // Triggers crossfade
       }
-
 
       const config = GAME_CONFIG.aliens;
       this.alienSpawnInterval = Math.max(
@@ -952,6 +970,7 @@ class Game {
       );
     }
   }
+
   activateAbility(key) {
     if (!this.abilityManager.isReady(key)) {
       /* console.log(`Ability ${key} not ready or locked.`); */ return;

@@ -14,8 +14,10 @@ space-defender/
 │   ├── input.js          # Input handling
 │   └── game.js           # Core game logic (state, entity management)
 └── assets/               # Game assets
-    └── sound/
-        ├── intro.wav     # Intro /Game Over music
-        └── 1-5.wav       # Game music levels 1-5
-        └── 6-15.wav      # Game music levels 6-15
-        └── 16-.wav       # Game music levels 16+
+    ├── sound/
+    │   ├── intro.wav     # Intro /Game Over music
+    │   ├── 1-5.wav       # Game music levels 1-5
+    │   ├── 6-15.wav      # Game music levels 6-15
+    │   └── 16-.wav       # Game music levels 16+
+    └── images/
+        └── player-ship.png

@@ -3,13 +3,44 @@
 // --- Offscreen Canvas Buffers ---
 let starfieldBuffer = null;
 let playerBuffer = null;
-let playerInvincibleBuffer = null; // NEW buffer for invincible state
+let playerInvincibleOverlayBuffer = null; // Separate overlay for invincibility effect
+
+// --- Ship image assets ---
+let shipImage = null;
+let shipImageLoaded = false;
+let shipImageError = false;
 
 function createOffscreenCanvas(width, height) {
     const buffer = document.createElement('canvas');
     buffer.width = width;
     buffer.height = height;
     return buffer;
+}
+
+// --- Load ship image ---
+function loadShipImage() {
+    if (shipImage) return; // Don't reload if already loaded
+
+    shipImage = new Image();
+    shipImage.onload = () => {
+        console.log("Ship image loaded successfully");
+        shipImageLoaded = true;
+        shipImageError = false;
+
+        // Create ship buffers when image loads
+        if (playerBuffer) {
+            createPlayerBuffer(GAME_CONFIG.player);
+        }
+    };
+
+    shipImage.onerror = (err) => {
+        console.error("Failed to load ship image:", err);
+        shipImageLoaded = false;
+        shipImageError = true;
+    };
+
+    // Start loading the image
+    shipImage.src = GAME_CONFIG.ship.imageFile;
 }
 
 // --- Starfield ---
@@ -102,60 +133,169 @@ function _drawPlayerShipShape(ctx, config, bufferWidth, bufferHeight, colorOverr
     }
 }
 
+function _drawPlayerShipImage(ctx, shipConfig, bufferWidth, bufferHeight, invincible = false) {
+    const centerX = bufferWidth / 2;
+    const centerY = bufferHeight / 2;
+
+    // Clear the buffer first
+    ctx.clearRect(0, 0, bufferWidth, bufferHeight);
+
+    // For invincible effect, we no longer modify the main ship drawing here
+    // as we'll use a separate overlay
+
+    // Draw the ship image centered on the buffer
+    const drawWidth = shipConfig.baseSize.width * shipConfig.scaleFactor;
+    const drawHeight = shipConfig.baseSize.height * shipConfig.scaleFactor;
+
+    ctx.drawImage(
+        shipImage,
+        centerX - drawWidth / 2,
+        centerY - drawHeight / 2,
+        drawWidth,
+        drawHeight
+    );
+}
+
+// New function to create invincibility overlay effect
+function createInvincibilityOverlay(bufferWidth, bufferHeight) {
+    playerInvincibleOverlayBuffer = createOffscreenCanvas(bufferWidth, bufferHeight);
+    const ctx = playerInvincibleOverlayBuffer.getContext('2d');
+
+    // Create a radial gradient that will serve as the overlay
+    const gradient = ctx.createRadialGradient(
+        bufferWidth / 2, bufferHeight / 2, 0,
+        bufferWidth / 2, bufferHeight / 2, bufferWidth / 2
+    );
+
+    // Semi-transparent white for the shield-like effect
+    gradient.addColorStop(0, 'rgba(255, 255, 255, 0.5)');
+    gradient.addColorStop(0.5, 'rgba(140, 200, 255, 0.4)');
+    gradient.addColorStop(1, 'rgba(100, 150, 255, 0.0)');
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, bufferWidth, bufferHeight);
+}
 
 function createPlayerBuffer(playerConfig) {
-    const bufferWidth = playerConfig.width + 10;
-    const bufferHeight = playerConfig.height + 10;
+    const shipConfig = GAME_CONFIG.ship;
+
+    // Use larger buffer size for the image-based ship
+    const bufferWidth = shipConfig.baseSize.width * shipConfig.scaleFactor + 10;
+    const bufferHeight = shipConfig.baseSize.height * shipConfig.scaleFactor + 10;
+
     playerBuffer = createOffscreenCanvas(bufferWidth, bufferHeight);
     const bufferCtx = playerBuffer.getContext('2d');
-    _drawPlayerShipShape(bufferCtx, playerConfig, bufferWidth, bufferHeight);
 
-    // NEW: Create invincible buffer (simple white overlay version)
-    playerInvincibleBuffer = createOffscreenCanvas(bufferWidth, bufferHeight);
-    const invincibleCtx = playerInvincibleBuffer.getContext('2d');
-    _drawPlayerShipShape(invincibleCtx, playerConfig, bufferWidth, bufferHeight, playerConfig.invincibleColor);
+    // Draw the ship based on whether the image loaded successfully
+    if (shipImageLoaded && shipImage) {
+        // Draw ship from loaded image
+        _drawPlayerShipImage(bufferCtx, shipConfig, bufferWidth, bufferHeight);
+    } else {
+        // Fallback to shape drawing if image failed to load
+        _drawPlayerShipShape(bufferCtx, playerConfig, bufferWidth, bufferHeight);
+
+        // Attempt to load the image again
+        loadShipImage();
+    }
+
+    // Create the invincibility overlay
+    createInvincibilityOverlay(bufferWidth, bufferHeight);
 }
 
 function drawPlayerFromBuffer(mainCtx, player) {
-    let bufferToDraw = playerBuffer; // Default buffer
-
-    // Check for invincibility and alternate drawing
-    if (player.invincible) {
-        // Simple flashing effect by alternating buffers or alpha
-        if (Math.floor(player.invincibilityTimer / 100) % 2 === 0) {
-            bufferToDraw = playerInvincibleBuffer;
+    if (!playerBuffer) {
+        // Attempt to load the ship image first
+        if (!shipImage) {
+            loadShipImage();
         }
-        // Or: use mainCtx.globalAlpha = 0.5 + Math.sin(Date.now() * 0.02) * 0.2; before drawing playerBuffer
-    }
-
-    if (!bufferToDraw) {
         createPlayerBuffer(GAME_CONFIG.player); // Create if missing
-        bufferToDraw = playerBuffer; // Fallback
     }
 
-    if (bufferToDraw) {
-        mainCtx.drawImage(bufferToDraw,
-            player.x - bufferToDraw.width / 2,
-            player.y - bufferToDraw.height / 2
+    if (playerBuffer) {
+        mainCtx.drawImage(playerBuffer,
+            player.x - playerBuffer.width / 2,
+            player.y - playerBuffer.height / 2
         );
 
-        // Draw Dynamic Elements (Engine Glow) - Only if NOT invincible maybe?
-        // Or make engine glow less intense when invincible
-        if (!player.invincible) {
-            const engineIntensity = clamp(Math.abs(player.targetX - player.x) / (player.width * 2), 0, 1);
-            if (engineIntensity > 0.1) {
-                mainCtx.fillStyle = GAME_CONFIG.player.engineColor.replace(/,\s*[\d.]+\)$/, `, ${engineIntensity * 0.8})`);
-                mainCtx.beginPath();
-                mainCtx.moveTo(player.x - player.width / 4, player.y + player.height / 3);
-                mainCtx.lineTo(player.x, player.y + player.height / 2 + 3);
-                mainCtx.lineTo(player.x + player.width / 4, player.y + player.height / 3);
-                mainCtx.closePath();
-                mainCtx.fill();
-            }
+        // Draw dynamic engine glow based on ship config
+        if (shipImageLoaded) {
+            drawShipEngines(mainCtx, player);
+        } else if (!player.invincible) {
+            drawFallbackEngines(mainCtx, player);
+        }
+
+        // Draw invincibility effect overlay if player is invincible
+        if (player.invincible && playerInvincibleOverlayBuffer) {
+            // Calculate pulsing effect based on invincibility timer
+            const pulseRatio = Math.sin(player.invincibilityTimer / 100) * 0.3 + 0.7;
+
+            // Save context for restoration
+            mainCtx.save();
+
+            // Set the blend mode for glow effect
+            mainCtx.globalAlpha = pulseRatio;
+            mainCtx.globalCompositeOperation = 'lighter';
+
+            // Draw the invincibility overlay on top of the ship
+            mainCtx.drawImage(
+                playerInvincibleOverlayBuffer,
+                player.x - playerInvincibleOverlayBuffer.width / 2,
+                player.y - playerInvincibleOverlayBuffer.height / 2
+            );
+
+            // Restore context
+            mainCtx.globalCompositeOperation = 'source-over';
+            mainCtx.globalAlpha = 1.0;
+            mainCtx.restore();
         }
     }
 }
 
+// New function to draw engine glow based on ship config
+function drawShipEngines(mainCtx, player) {
+    const shipConfig = GAME_CONFIG.ship;
+    const engineIntensity = clamp(Math.abs(player.targetX - player.x) / (player.width * 2), 0.3, 1);
+    const alpha = engineIntensity * shipConfig.engineIntensityFactor;
+
+    mainCtx.fillStyle = shipConfig.engineColor.replace(/,\s*[\d.]+\)$/, `, ${alpha})`);
+
+    // Draw all engines defined in the ship config
+    for (const engine of shipConfig.enginePositions) {
+        mainCtx.beginPath();
+
+        // Scale the flame size based on velocity
+        const flameHeight = engine.height * (0.8 + engineIntensity * 0.5);
+
+        mainCtx.moveTo(
+            player.x + engine.x,
+            player.y + engine.y
+        );
+        mainCtx.lineTo(
+            player.x + engine.x - engine.width / 2,
+            player.y + engine.y + flameHeight
+        );
+        mainCtx.lineTo(
+            player.x + engine.x + engine.width / 2,
+            player.y + engine.y + flameHeight
+        );
+        mainCtx.closePath();
+        mainCtx.fill();
+    }
+}
+
+// Fallback engine drawing if image fails to load
+function drawFallbackEngines(mainCtx, player) {
+    const engineIntensity = clamp(Math.abs(player.targetX - player.x) / (player.width * 2), 0, 1);
+    if (engineIntensity > 0.1) {
+        mainCtx.fillStyle = GAME_CONFIG.player.engineColor.replace(/,\s*[\d.]+\)$/, `, ${engineIntensity * 0.8})`);
+        mainCtx.beginPath();
+        mainCtx.moveTo(player.x - player.width / 4, player.y + player.height / 3);
+        mainCtx.lineTo(player.x, player.y + player.height / 2 + 3);
+        mainCtx.lineTo(player.x + player.width / 4, player.y + player.height / 3);
+        mainCtx.closePath();
+        mainCtx.fill();
+    }
+}
 
 // --- General Drawing Helpers ---
 
@@ -178,7 +318,6 @@ function drawText(ctx, text, x, y, color, fontSize = 12, align = 'center', basel
     ctx.textBaseline = baseline;
     ctx.fillText(text, x, y);
 }
-
 
 function drawHealthBar(ctx, x, y, width, height, currentHealth, maxHealth) {
     const healthPercent = clamp(currentHealth / maxHealth, 0, 1);
