@@ -361,13 +361,7 @@ class Player extends Entity {
     this.shieldRecharging = false;
   }
 
-  resetAfterDeath(canvasWidth, canvasHeight) {
-    const config = GAME_CONFIG.player;
-    this.x = canvasWidth / 2;
-    this.y = canvasHeight - config.initialYOffset;
-    this.targetX = this.x;
-    this.targetY = this.y; // Reset target Y position
-
+  resetAfterDeath() {
     // No longer reset power levels here - they're reduced in loseLife() method
     // The bullet kills are still reset
     this.spreadKills = 0;

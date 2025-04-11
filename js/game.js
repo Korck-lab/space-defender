@@ -203,6 +203,9 @@ class Game {
     this.canvas.style.width = `${displayWidth}px`;
     this.canvas.style.height = `${displayHeight}px`;
 
+    // Set pixelated rendering for crisp pixel art
+    this.canvas.style.imageRendering = 'pixelated';
+
     // Set the logical canvas resolution for proper rendering
     this.canvas.width = GAME_WIDTH;
     this.canvas.height = GAME_HEIGHT;
@@ -780,7 +783,7 @@ class Game {
       this.abilityManager.resetUnlocksOnDeath();
 
       // Reset position and make player invincible
-      this.player.resetAfterDeath(this.width, this.height);
+      this.player.resetAfterDeath();
 
       // Update UI with current power level based on active bullet mode
       const bulletMode = this.player.bulletMode;
