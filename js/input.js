@@ -7,6 +7,10 @@ class InputHandler {
         this.player = player;
         this.abilityManager = abilityManager;
 
+        // Add mouse position tracking for aiming
+        this.mouseX = 0;
+        this.mouseY = 0;
+
         // Bind methods to ensure 'this' context is correct
         this.handleMouseMove = this.handleMouseMove.bind(this);
         this.handleMouseClick = this.handleMouseClick.bind(this);
@@ -56,8 +60,13 @@ class InputHandler {
             const mouseX = (event.clientX - rect.left) * scaleX;
             const mouseY = (event.clientY - rect.top) * scaleY;
 
+            // Update both the player target and the stored mouse position
             this.player.targetX = mouseX;
             this.player.targetY = mouseY; // Add Y target position
+
+            // Store mouse position for aiming crosshair
+            this.mouseX = mouseX;
+            this.mouseY = mouseY;
         }
     }
 
@@ -134,6 +143,11 @@ class InputHandler {
                 this.game.activateAbility(key);
             }
         }
+    }
+
+    // Add getter method for the mouse position
+    getMousePosition() {
+        return { x: this.mouseX, y: this.mouseY };
     }
 }
 

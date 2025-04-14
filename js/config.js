@@ -15,22 +15,24 @@ const GAME_CONFIG = {
   GAME_VERSION: GAME_VERSION, // Add reference to version
   INVINCIBILITY_DURATION: 3000,
 
+  // Aim
+  aim: {
+    crosshairSize: 20,       // Size of the crosshair in pixels
+    color: 'rgba(0, 255, 255, 0.6)', // Color of the aiming elements
+    pulseSpeed: 0.005,       // Speed of crosshair pulse animation
+  },
+
   // Ship Configuration
   ship: {
-    imageFile: "assets/images/player-ship.png",
-    baseSize: { width: 80, height: 100 }, // Base size when loaded
+    imageFile: "assets/images/player-ship2.png",
+    baseSize: { width: 150, height: 150 }, // Base size when loaded
     scaleFactor: 0.5, // Scale down from the image's native size
     enginePositions: [
-      { x: -13, y: 12, width: 10, height: 22 }, // Left engine
-      { x: 13, y: 12, width: 10, height: 22 }   // Right engine
+      { x: -13, y: 12, width: 20, height: 32 }, // Left engine
+      // { x: 13, y: 12, width: 10, height: 22 }   // Right engine
     ],
-    engineColor: "rgba(255, 72, 0, 0.67)",
+    engineColor: "rgba(255, 0, 0, 0.54)",
     engineIntensityFactor: 0.5, // Factor for engine glow intensity
-    weaponPositions: [
-      { x: -30, y: -15 }, // Left weapon
-      { x: 0, y: -2 },   // Center weapon
-      { x: 30, y: -15 }   // Right weapon
-    ],
     // Leveling parameters
     levelUpScale: 1.08, // Ship grows by 8% each level, up to maxLevel
     maxLevel: 5, // Maximum ship growth level
@@ -38,13 +40,15 @@ const GAME_CONFIG = {
     abilitySlotsPerLevel: [1, 2, 2, 3, 3],
     // Shield configuration
     shield: {
+      imagefile: "assets/images/shield.gif",
+      useImage: true, // Set to true to use the animation image instead of drawn effects
       maxCapacity: 2, // Number of hits shield can absorb
-      color: "rgba(0, 255, 174, 0.54)", // Shield visual color
+      color: "rgba(0, 255, 174, 0.54)", // Shield visual color if not using image
       rechargeDelay: 3000, // Time without damage before shield starts recharging (ms)
       rechargeRate: 1000, // Time to recharge one unit (ms)
       // Visual settings for drawing
       visual: {
-        baseSize: 2.0, // Fixed multiplier for shield size 
+        baseSize: 2.5, // Fixed multiplier for shield size 
         pulseFrequency: 0.3, // Intensity of pulse
         pulseSpeed: 200, // Animation speed for pulse
         pulseAmplitude: 0.1, // Shield pulse variation (10% of shield size)
@@ -54,6 +58,15 @@ const GAME_CONFIG = {
         innerCircleSizeFactor: 2.0, // Size divisor for inner glowing circle
         strokeWidth: 1 // Thickness of inner glow
       },
+      // Image-based shield visual settings
+      imageVisual: {
+        sizeFactor: 4.0, // Size multiplier relative to player
+        blendMode: 'screen', // Blend mode for transparency: 'screen', 'lighten', etc.
+        opacity: 0.8, // Base opacity for the shield image
+        pulseAmplitude: 0.1, // Shield pulse variation (10% of shield size)
+        pulseSpeed: 200, // Animation speed for pulse
+        rotation: 0.1, // Rotation speed of the shield image
+      }
     },
   },
 
@@ -84,6 +97,9 @@ const GAME_CONFIG = {
       colorParallel: "#00ff00",
       baseDamageMultiplier: 1,
       parallelDamageFactor: 0.5,
+      weaponPositions: [
+        { x: 15, y: -35 }   // Center weapon
+      ],
     },
     alienFighter: {
       width: 5,

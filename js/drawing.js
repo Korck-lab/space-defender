@@ -437,4 +437,47 @@ function drawItem(ctx, item) {
     drawText(ctx, icon, centerX, centerY, 'white', cfg.size * 0.7);
 }
 
+// --- Draw Aim Crosshair ---
+function drawAimCrosshair(ctx, x, y) {
+    const config = GAME_CONFIG.aim;
+    const size = config.crosshairSize;
+    const halfSize = size / 2;
+
+    // Calculate pulsing effect based on time
+    const pulseAmount = Math.sin(performance.now() * config.pulseSpeed) * 0.2 + 0.8;
+    const scaledSize = size * pulseAmount;
+    const halfScaledSize = scaledSize / 2;
+
+    ctx.save();
+
+    // Set drawing properties
+    ctx.strokeStyle = config.color;
+    ctx.lineWidth = 2;
+
+    // Draw crosshair lines
+    ctx.beginPath();
+
+    // Horizontal line with gap in middle
+    ctx.moveTo(x - scaledSize, y);
+    ctx.lineTo(x - halfScaledSize, y);
+    ctx.moveTo(x + halfScaledSize, y);
+    ctx.lineTo(x + scaledSize, y);
+
+    // Vertical line with gap in middle
+    ctx.moveTo(x, y - scaledSize);
+    ctx.lineTo(x, y - halfScaledSize);
+    ctx.moveTo(x, y + halfScaledSize);
+    ctx.lineTo(x, y + scaledSize);
+
+    // Draw the crosshair
+    ctx.stroke();
+
+    // Add a small circle in the middle
+    ctx.beginPath();
+    ctx.arc(x, y, halfScaledSize / 2, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+}
+
 

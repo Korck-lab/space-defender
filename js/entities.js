@@ -20,10 +20,10 @@ class Entity {
     );
   }
   getCenterX() {
-    return this.x + this.width / 2;
+    return this.x;
   }
   getCenterY() {
-    return this.y + this.height / 2;
+    return this.y;
   }
 }
 
@@ -80,8 +80,50 @@ class Player extends Entity {
     this.shieldRechargeTimer = 0;
     this.shieldRecharging = false;
 
+    // Shield image properties
+    this.shieldImage = null;
+    this.shieldImageLoaded = false;
+    if (this.shieldConfig.useImage) {
+      this.loadShieldImage(); // Call loadShieldImage to load the animated GIF
+    }
+
     // Track current ship level
     this.shipLevel = 1;
+  }
+
+  loadShieldImage() {
+    // Store a reference to 'this' for use in callbacks
+    const self = this;
+
+    // Initialize shield animator property that will hold the Gifler animator
+    this.shieldAnimator = null;
+
+    // Initialize a canvas element to render the GIF animation
+    this.shieldCanvas = document.createElement('canvas');
+
+    // Use Gifler library to load and animate the shield GIF
+    gifler(this.shieldConfig.imagefile)
+      .get(function (animator) {
+        console.log("Shield animation loaded successfully");
+        self.shieldAnimator = animator;
+        self.shieldImageLoaded = true;
+
+        // Use a consistent size for the shield canvas based on ship's largest dimension
+        // Multiply by a fixed factor to ensure it's large enough
+        const baseSize = Math.max(self.width, self.height);
+
+        const shieldSize = baseSize;
+
+        // Set both width and height to the same value to ensure it's a perfect square
+        self.shieldCanvas.width = shieldSize;
+        self.shieldCanvas.height = shieldSize;
+
+        // Start animating in our off-screen canvas
+        animator.animateInCanvas(self.shieldCanvas);
+
+        // Optionally stop animation when not visible to save CPU
+        // animator.stop() // We'll let it run continuously
+      });
   }
 
   update(deltaTime, canvasWidth) {
@@ -148,6 +190,70 @@ class Player extends Entity {
 
   // Draw shield around ship
   drawShield(ctx) {
+    // If using the shield image and it's loaded with Gifler
+    if (this.shieldConfig.useImage && this.shieldImageLoaded && this.shieldCanvas) {
+      // Get the image visual settings
+      const imageVisual = this.shieldConfig.imageVisual;
+
+      // Calculate shield size based on player's largest dimension and configured size factor
+      // Using a larger fixed value for the shield size instead of a multiplier of the ship size
+      const shieldDiameter = Math.max(this.width, this.height) * imageVisual.sizeFactor;
+      const aspectRatio = this.shieldCanvas.width / this.shieldCanvas.height;
+
+      // Get exact center coordinates of the player
+      const centerX = this.getCenterX();
+      const centerY = this.getCenterY();
+
+      // Calculate pulse effect (a value that oscillates between -1 and 1)
+      const pulseEffect = Math.sin(performance.now() / imageVisual.pulseSpeed);
+      // Apply pulse variation - limited to pulseAmplitude % variation
+      const pulseVariation = shieldDiameter * imageVisual.pulseAmplitude * pulseEffect;
+      // Final shield size (always positive thanks to the small amplitude)
+      const shieldSize = shieldDiameter + pulseVariation / 2.0;
+
+      // Calculate position to center the shield perfectly around the player's center
+      const drawX = centerX - shieldSize / 2 * aspectRatio;
+      const drawY = centerY - shieldSize / 2;
+
+      // Save the context state
+      ctx.save();
+
+      // Set composite operation from config
+      ctx.globalCompositeOperation = imageVisual.blendMode;
+
+      // Set opacity from config 
+      // Add a subtle pulsing effect for shields with low capacity
+      let opacity = imageVisual.opacity;
+      if (this.shieldCapacity < this.shieldConfig.maxCapacity) {
+        const pulseEffect = Math.sin(performance.now() / 200) * 0.2 + 0.8;
+        opacity *= pulseEffect;
+      }
+      ctx.globalAlpha = opacity;
+      ctx.translate(centerX, centerY);
+      ctx.rotate(this.shieldConfig.imageVisual.rotation * performance.now() / 100);
+
+      // Draw the animated shield from our canvas perfectly centered on the player
+      // Use shieldDiameter for both width and height to maintain a perfect circle
+      ctx.drawImage(
+        this.shieldCanvas,
+        0,                // Source x
+        0,                // Source y
+        this.shieldCanvas.width,  // Source width
+        this.shieldCanvas.height, // Source height
+        drawX - centerX,               // Destination x
+        drawY - centerY,               // Destination y
+        // drawX,            // Destination x
+        // drawY,            // Destination y
+        shieldSize * aspectRatio,   // Destination width - use the same for both to ensure a circle
+        shieldSize    // Destination height - use the same for both to ensure a circle
+      );
+      // Restore the context state
+      ctx.restore();
+      return;
+    }
+
+    // Fallback to drawing the shield using visual effects if Gifler isn't working
+    // or if useImage is false
     const visualConfig = this.shieldConfig.visual;
 
     // Calculate pulse effect (a value that oscillates between -1 and 1)
@@ -160,26 +266,26 @@ class Player extends Entity {
     const pulseVariation = baseShieldSize * visualConfig.pulseAmplitude * pulseEffect;
 
     // Final shield size (always positive thanks to the small amplitude)
-    const shieldSize = baseShieldSize + pulseVariation; //Math.max(baseShieldSize + pulseVariation, 1); // Ensure minimum size of 1
+    const shieldSize = baseShieldSize + pulseVariation;
 
     // Calculate alpha based on shield capacity and pulse
     const alpha = Math.max(
       0,
       visualConfig.baseAlpha * pulseEffect +
-      (visualConfig.capacityAlpha * (this.shieldCapacity / this.shieldConfig.maxCapacity))
+      visualConfig.capacityAlpha * (this.shieldCapacity / this.shieldConfig.maxCapacity)
     );
 
     // Draw outer shield
     ctx.beginPath();
-    ctx.arc(this.x, this.y, shieldSize / 2, 0, Math.PI * 2);
-    ctx.fillStyle = this.shieldConfig.color.replace(/[\d\.]+\)$/, `${alpha})`);
+    ctx.arc(this.getCenterX(), this.getCenterY(), shieldSize / 2, 0, Math.PI * 2);
+    ctx.fillStyle = this.shieldConfig.color.replace(/\[\d\.]+\)$/, `${alpha})`);
     ctx.fill();
 
     // Draw inner glow (always ensure positive radius)
     const innerRadius = Math.max(1, shieldSize / visualConfig.innerCircleSizeFactor);
     ctx.beginPath();
-    ctx.arc(this.x, this.y, innerRadius, 0, Math.PI * 2);
-    ctx.strokeStyle = this.shieldConfig.color.replace(/[\d\.]+\)$/, `${alpha * visualConfig.innerGlowAlpha})`);
+    ctx.arc(this.getCenterX(), this.getCenterY(), innerRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = this.shieldConfig.color.replace(/\[\d\.]+\)$/, `${alpha * visualConfig.innerGlowAlpha})`);
     ctx.lineWidth = visualConfig.strokeWidth;
     ctx.stroke();
   }

@@ -522,12 +522,13 @@ class Game {
     }
   }
   handlePlayerShooting(currentTime) {
+    const bConfig = GAME_CONFIG.bullets.player;
     if (this.player.autoFire && this.player.canShoot(currentTime)) {
       this.player.recordShot(currentTime);
       this.createPlayerBullets();
       this.particleManager.createMuzzleFlash(
-        this.player.x,
-        this.player.y - this.player.height / 2,
+        bConfig.weaponPositions[0].x + this.player.x,
+        bConfig.weaponPositions[0].y + this.player.y,
         this.player.bulletMode === "spread"
           ? GAME_CONFIG.bullets.player.colorSpread
           : GAME_CONFIG.bullets.player.colorParallel
@@ -560,8 +561,8 @@ class Game {
         const speedX = Math.sin(angleOffset) * 3;
         this.bullets.push(
           new Bullet(
-            this.player.x,
-            this.player.y - pConfig.height / 2,
+            bConfig.weaponPositions[0].x + this.player.x,
+            bConfig.weaponPositions[0].y + this.player.y,
             { ...bConfig, color },
             speedX,
             bConfig.speedY,
@@ -1081,6 +1082,12 @@ class Game {
     this.player.draw(this.ctx);
     this.drawEntities(this.bullets);
     this.particleManager.draw(this.ctx);
+
+    // Draw the aim crosshair if the game is running and not paused
+    if (this.running && !this.paused && this.inputHandler) {
+      const mousePos = this.inputHandler.getMousePosition();
+      drawAimCrosshair(this.ctx, mousePos.x, mousePos.y);
+    }
   }
 
   drawEntities(entities) {
