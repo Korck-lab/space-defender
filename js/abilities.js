@@ -1,6 +1,8 @@
 // js/abilities.js
 
-class AbilityManager {
+import { GAME_CONFIG } from './config.js';
+
+export class AbilityManager {
     constructor(uiManager) {
         this.uiManager = uiManager;
         this.abilities = {};
@@ -9,13 +11,12 @@ class AbilityManager {
         // Only bulletMode is initially unlocked
         this.unlockedAbilities = new Set();
         // Track available ability slots (based on ship level)
-        this.availableAbilitySlots = 1; // Default to 1 slot at level 1
+        this.availableAbilitySlots = GAME_CONFIG.ship.abilitySlotsPerLevel[0]; // Start with the first level's slots
         this.initializeAbilities();
     }
 
     initializeAbilities() {
         const config = GAME_CONFIG.abilities;
-
         for (const key in config) {
             if (!GAME_CONFIG.abilities.hasOwnProperty(key)) continue; // Ensure it's an ability config
 
@@ -32,10 +33,10 @@ class AbilityManager {
             };
 
             // Only bulletMode is unlocked by default
-            if (key === 'bulletMode') {
-                this.unlockedAbilities.add(key);
-                this.abilities[key].ready = true;
-            }
+            // if (key === 'bulletMode' || key === 'rocket') {
+            this.unlockedAbilities.add(key);
+            this.abilities[key].ready = true;
+            // }
         }
         this.updateAllUI(); // Initial UI setup (shows locked state)
     }

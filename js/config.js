@@ -1,12 +1,11 @@
 // js/config.js
 
-const GAME_VERSION = "1.1.0"; // Use semantic versioning
-const LOCAL_STORAGE_VERSION_KEY = "spaceDefenderVersion";
-// Set fixed game dimensions
-const GAME_WIDTH = 800;
-const GAME_HEIGHT = 600;
+export const GAME_VERSION = "1.1.0"; // Use semantic versioning
+export const LOCAL_STORAGE_VERSION_KEY = "spaceDefenderVersion";
+export const GAME_WIDTH = 800;
+export const GAME_HEIGHT = 600;
 
-const GAME_CONFIG = {
+export const GAME_CONFIG = {
   // General
   STAR_COUNT: 350,
   MAX_BULLETS_DISPLAY: 10,
@@ -37,10 +36,10 @@ const GAME_CONFIG = {
     levelUpScale: 1.08, // Ship grows by 8% each level, up to maxLevel
     maxLevel: 5, // Maximum ship growth level
     // Ability slots increase with ship level
-    abilitySlotsPerLevel: [1, 2, 2, 3, 3],
+    abilitySlotsPerLevel: [3, 3, 3, 3, 3],
     // Shield configuration
     shield: {
-      imagefile: "assets/images/shield.gif",
+      imagefile: "assets/images/shield2.gif",
       useImage: true, // Set to true to use the animation image instead of drawn effects
       maxCapacity: 2, // Number of hits shield can absorb
       color: "rgba(0, 255, 174, 0.54)", // Shield visual color if not using image
@@ -60,12 +59,13 @@ const GAME_CONFIG = {
       },
       // Image-based shield visual settings
       imageVisual: {
-        sizeFactor: 4.0, // Size multiplier relative to player
+        sizeFactor: 0.175, // Size multiplier relative to player
         blendMode: 'screen', // Blend mode for transparency: 'screen', 'lighten', etc.
-        opacity: 0.8, // Base opacity for the shield image
+        opacity: 0.6, // Base opacity for the shield image
         pulseAmplitude: 0.1, // Shield pulse variation (10% of shield size)
         pulseSpeed: 200, // Animation speed for pulse
         rotation: 0.1, // Rotation speed of the shield image
+        // capacityAlpha: 0.2 // Additional opacity based on shield capacity
       }
     },
   },
@@ -126,11 +126,11 @@ const GAME_CONFIG = {
     speedY: -8,
     color: "#ff5500",
     explosionRadius: 150, // Increased explosion radius for area damage
-    damage: 8, // Increased damage
+    damage: 12, // Increased damage
     flameColor: "#ffaa00",
     turnRate: 0.05, // How quickly rockets can turn toward target
-    distanceToStartChasing: 200, // Distance from top when rocket starts targeting
-    areaDamageFalloff: 0.8, // Damage reduces with distance from explosion center
+    distanceToStartChasing: 150, // Distance from top when rocket starts targeting
+    areaDamageFalloff: 0.9, // Damage reduces with distance from explosion center
   },
 
   // Wingmen
@@ -232,9 +232,9 @@ const GAME_CONFIG = {
   // --- Ability Unlock System ---
   unlockSystem: {
     // Bar color defined in CSS now
-    rocketUnlockScore: 500,
-    wingmanUnlockScore: 1500,
-    miniShipUnlockScore: 3000,
+    rocketUnlockScore: 0,
+    wingmanUnlockScore: 0,
+    miniShipUnlockScore: 0,
     glowDuration: 500, // ms for the glow effect on unlock bar progress
   },
 
@@ -310,5 +310,8 @@ const GAME_CONFIG = {
   // UI
   levelUpMessageDuration: 2000,
 };
+
+// Expose configuration via ES modules
+// (GAME_VERSION, LOCAL_STORAGE_VERSION_KEY, GAME_WIDTH, GAME_HEIGHT, GAME_CONFIG are exported above)
 
 

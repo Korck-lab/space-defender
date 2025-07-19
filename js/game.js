@@ -1,6 +1,16 @@
 // js/game.js
 
-class Game {
+import { GAME_CONFIG, GAME_WIDTH, GAME_HEIGHT } from './config.js';
+import { UIManager } from './ui.js';
+import { AbilityManager } from './abilities.js';
+import { ParticleManager, Player, Bullet, Rocket, Alien, Item, Debris, Wingman, MiniShip } from './entities.js';
+import { AudioManager } from './audio.js';
+import { initStarfield, loadShipImage, createPlayerBuffer, drawStarfield, drawAimCrosshair } from './drawing.js';
+import { InputHandler } from './input.js';
+import { checkCollisions as collisionService } from './services/CollisionService.js';
+import { clamp, getRandom, getRandomInt } from './utils.js';
+
+export class Game {
   // --- Constructor and other methods mostly unchanged ---
   constructor(canvas, ctx) {
     this.canvas = canvas;
@@ -87,6 +97,7 @@ class Game {
       console.error("Could not start audio:", e);
       // Optionally inform the user via UI
     }
+    this.abilityManager.unlockAbility("rocket");
 
     this.requestLoop();
     console.log("Game Started");
@@ -633,67 +644,7 @@ class Game {
   }
 
   checkCollisions() {
-    // Bullets vs Aliens / Player
-    for (let i = this.bullets.length - 1; i >= 0; i--) {
-      const bullet = this.bullets[i];
-      if (!bullet.active) continue;
-
-      if (bullet.owner === "player" || bullet.owner === "miniShip" || bullet.owner === "wingman") {
-        // Player or MiniShip bullets vs Aliens
-        for (let j = this.aliens.length - 1; j >= 0; j--) {
-          const alien = this.aliens[j];
-          if (!alien.active) continue;
-          if (checkCollision(bullet, alien)) {
-            const destroyed = alien.takeDamage(bullet.damage);
-            bullet.active = false;
-            this.particleManager.createExplosion(
-              bullet.getCenterX(),
-              bullet.getCenterY(),
-              alien.color,
-              3
-            );
-            if (destroyed) this.handleAlienDestroyed(alien, j, bullet.owner); // Track source
-            break;
-          }
-        }
-      } else if (bullet.owner === "alien") {
-        // Alien bullet vs Player
-        if (!this.player.invincible && checkCollision(bullet, this.player)) {
-          bullet.active = false;
-          this.handlePlayerHit("alien_bullet");
-          if (!this.running) break;
-        }
-      }
-    }
-    // Player vs Aliens
-    if (!this.player.invincible) {
-      for (let j = this.aliens.length - 1; j >= 0; j--) {
-        const alien = this.aliens[j];
-        if (!alien.active) continue;
-        const playerHitbox = {
-          x: this.player.x - this.player.width / 3,
-          y: this.player.y - this.player.height / 3,
-          width: this.player.width * 0.67,
-          height: this.player.height * 0.67,
-        };
-        if (checkCollision(playerHitbox, alien)) {
-          this.handlePlayerHit(alien, j);
-          if (!this.running) break;
-          if (this.player.invincible) break;
-        }
-      }
-    }
-    // Player vs Items
-    for (let k = this.items.length - 1; k >= 0; k--) {
-      const item = this.items[k];
-      if (!item.active) continue;
-      if (checkCollision(this.player, item)) {
-        item.applyEffect(this.player, this);
-        item.active = false;
-      }
-    }
-    // Debris vs Aliens
-    this.particleManager.checkDebrisCollisions(this.aliens, this);
+    collisionService(this);
   }
 
   handleAlienDestroyed(alien, index, source) {
@@ -1034,7 +985,8 @@ class Game {
     this.miniShips = [];
     const count = GAME_CONFIG.miniShip.count;
     for (let i = 0; i < count; i++) {
-      this.miniShips.push(new MiniShip(this.player.x, this.player.y, i));
+      // this.miniShips.push(new MiniShip(this.player.x, this.player.y, i));
+      this.miniShips.push(new MiniShip(this.player.getCenterX(), this.player.getCenterY(), i));
     }
     this.particleManager.createExplosion(
       this.player.x,
@@ -1109,9 +1061,12 @@ class Game {
             entity.config.trailColor || entity.color
           );
         } else if (entity instanceof Rocket) {
+          const bottom = entity.getRotatedCenterBottom()
           this.particleManager.createRocketFlame(
-            entity.x,
-            entity.y + entity.height
+            bottom.x,
+            bottom.y,
+            // entity.getCenterX(),
+            // entity.y + entity.height
           );
         }
       }

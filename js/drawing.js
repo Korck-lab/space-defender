@@ -1,5 +1,8 @@
 // js/drawing.js
 
+import { GAME_CONFIG } from './config.js';
+import { clamp } from './utils.js';
+
 // --- Offscreen Canvas Buffers ---
 let starfieldBuffer = null;
 let playerBuffer = null;
@@ -83,8 +86,10 @@ function drawStarsToBuffer() {
 
         const alpha = 0.2 + (star.z / 10) * 0.8;
         ctx.globalAlpha = alpha;
-        const hue = 200 + star.z * 10;
-        ctx.fillStyle = `hsl(${hue}, 80%, 70%)`;
+        const hue = 360; // Color based on depth
+        const sat = 100;
+        const light = Math.max(40 + star.z * 5, 75 + Math.random() * 30); // Lightness based on depth
+        ctx.fillStyle = `hsl(${hue}, ${sat}%, ${light}%)`;
         ctx.fillRect(star.x, star.y, star.size, star.size);
     }
     ctx.globalAlpha = 1; // Reset alpha
@@ -213,8 +218,8 @@ function drawPlayerFromBuffer(mainCtx, player) {
 
     if (playerBuffer) {
         mainCtx.drawImage(playerBuffer,
-            player.x - playerBuffer.width / 2,
-            player.y - playerBuffer.height / 2
+            player.getCenterX() - playerBuffer.width / 2,
+            player.getCenterY() - playerBuffer.height / 2
         );
 
         // Draw dynamic engine glow based on ship config
@@ -239,8 +244,8 @@ function drawPlayerFromBuffer(mainCtx, player) {
             // Draw the invincibility overlay on top of the ship
             mainCtx.drawImage(
                 playerInvincibleOverlayBuffer,
-                player.x - playerInvincibleOverlayBuffer.width / 2,
-                player.y - playerInvincibleOverlayBuffer.height / 2
+                player.getCenterX() - playerInvincibleOverlayBuffer.width / 2,
+                player.getCenterY() - playerInvincibleOverlayBuffer.height / 2
             );
 
             // Restore context
@@ -409,7 +414,7 @@ function drawItem(ctx, item) {
     // Draw outer glow with pulsing effect for ability items
     const isPowerup = ['rocket', 'wingman', 'miniShip'].includes(item.itemType);
     const glowRadius = isPowerup ?
-        radius * (1.5 + Math.sin(performance.now() * 0.005) * 0.2) :
+        radius * (1.5 + Math.sin(performance.now() * 0.01) * 0.2) :
         radius * 1.5;
 
     const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.8, centerX, centerY, glowRadius);
@@ -480,4 +485,22 @@ function drawAimCrosshair(ctx, x, y) {
     ctx.restore();
 }
 
-
+// Export all the drawing functions
+export {
+    createOffscreenCanvas,
+    loadShipImage,
+    initStarfield,
+    drawStarsToBuffer,
+    drawStarfield,
+    createPlayerBuffer,
+    drawPlayerFromBuffer,
+    drawShipEngines,
+    drawFallbackEngines,
+    drawRect,
+    drawCircle,
+    drawText,
+    drawHealthBar,
+    drawGenericShip,
+    drawItem,
+    drawAimCrosshair
+};

@@ -1,6 +1,9 @@
 // js/ui.js
 
-class UIManager {
+import { GAME_CONFIG } from './config.js';
+import { clamp } from './utils.js';
+
+export class UIManager {
   constructor() {
     // Cache UI elements
     this.scoreElement = document.getElementById("score");

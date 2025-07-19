@@ -1,5 +1,9 @@
 // js/entities.js
 
+import { GAME_CONFIG } from './config.js';
+import { clamp, getRandom, getRandomInt, checkCollision, findClosestEntity, distance } from './utils.js';
+import { drawRect, drawCircle, drawText, drawHealthBar, drawGenericShip, drawItem, drawPlayerFromBuffer } from './drawing.js';
+
 // --- Base Class (No Change) ---
 class Entity {
   /* ... */
@@ -10,6 +14,7 @@ class Entity {
     this.height = height;
     this.color = color;
     this.active = true;
+    this.rotation = 0;
   }
   isOffscreen(canvasWidth, canvasHeight, margin = 50) {
     return (
@@ -19,11 +24,96 @@ class Entity {
       this.y > canvasHeight + margin + this.height
     );
   }
+  setRotation(rotation) {
+    this.rotation = rotation;
+  }
   getCenterX() {
-    return this.x;
+    return this.x + this.width / 2.0;
   }
   getCenterY() {
+    return this.y + this.height / 2.0;
+  }
+  getBottom() {
+    return this.y + this.height;
+  }
+  getTop() {
     return this.y;
+  }
+  getLeft() {
+    return this.x;
+  }
+  getRight() {
+    return this.x + this.width;
+  }
+  getBoundingBox() {
+    return {
+      left: this.getLeft(),
+      right: this.getRight(),
+      top: this.getTop(),
+      bottom: this.getBottom(),
+    };
+  }
+  getRotatedRect() {
+    // Calculates the four corners after rotation
+    const centerX = this.getCenterX();
+    const centerY = this.getCenterY();
+    const cos = Math.cos(this.rotation);
+    const sin = Math.sin(this.rotation);
+    const halfWidth = this.width / 2;
+    const halfHeight = this.height / 2;
+
+    const corners = [
+      { x: -halfWidth, y: -halfHeight }, // Top-left relative to center
+      { x: halfWidth, y: -halfHeight },  // Top-right relative to center
+      { x: halfWidth, y: halfHeight },   // Bottom-right relative to center
+      { x: -halfWidth, y: halfHeight },  // Bottom-left relative to center
+    ];
+
+    const rotatedCorners = corners.map((corner) => {
+      // Apply 2D rotation formula
+      const rotatedRelX = corner.x * cos - corner.y * sin;
+      const rotatedRelY = corner.x * sin + corner.y * cos;
+
+      // Add center coordinates back to get absolute position
+      return {
+        x: rotatedRelX + centerX,
+        y: rotatedRelY + centerY,
+      };
+    });
+    return rotatedCorners;
+  }
+
+  /**
+   * Calculates the coordinates of the center-bottom point after rotation.
+   * The rotation is performed around the entity's center.
+   * @returns {{x: number, y: number}} The rotated coordinates.
+   */
+  getRotatedCenterBottom() {
+    const centerX = this.getCenterX();
+    const centerY = this.getCenterY();
+    const cos = Math.cos(this.rotation);
+    const sin = Math.sin(this.rotation);
+
+    // 1. Coordinates of the center-bottom point *relative* to the entity's center
+    //    (before rotation)
+    //    x-relative: It's aligned with the center horizontally, so 0.
+    //    y-relative: It's half the height below the center, so +height/2.
+    const relX = 0;
+    const relY = this.height / 2;
+
+    // 2. Apply the 2D rotation formula to the relative coordinates
+    const rotatedRelX = relX * cos - relY * sin;
+    const rotatedRelY = relX * sin + relY * cos;
+
+    // Simplify using relX = 0:
+    // const rotatedRelX = - (this.height / 2) * sin;
+    // const rotatedRelY = (this.height / 2) * cos;
+
+    // 3. Add the center coordinates back to get the final absolute position
+    const finalX = rotatedRelX + centerX;
+    const finalY = rotatedRelY + centerY;
+    console.log(`Final X: ${finalX}, Final Y: ${finalY}, Rotation: ${this.rotation}`);
+    return { x: finalX, y: finalY };
   }
 }
 
@@ -86,7 +176,6 @@ class Player extends Entity {
     if (this.shieldConfig.useImage) {
       this.loadShieldImage(); // Call loadShieldImage to load the animated GIF
     }
-
     // Track current ship level
     this.shipLevel = 1;
   }
@@ -102,28 +191,43 @@ class Player extends Entity {
     this.shieldCanvas = document.createElement('canvas');
 
     // Use Gifler library to load and animate the shield GIF
-    gifler(this.shieldConfig.imagefile)
-      .get(function (animator) {
-        console.log("Shield animation loaded successfully");
-        self.shieldAnimator = animator;
-        self.shieldImageLoaded = true;
+    if (typeof gifler !== 'undefined') {
+      try {
+        gifler(this.shieldConfig.imagefile)
+        .get(function (animator) {
+          console.log("Shield animation loaded successfully");
+          self.shieldAnimator = animator;
+          self.shieldImageLoaded = true;
+          console.log("Shield image width:", animator.width);
+          console.log("Shield image height:", animator.height);
+          // Set the canvas size to match the GIF dimensions
+          // aspectRatio = animator.width / animator.height;
+          // const shieldSize = Math.max(animator.width, animator.height);
 
-        // Use a consistent size for the shield canvas based on ship's largest dimension
-        // Multiply by a fixed factor to ensure it's large enough
-        const baseSize = Math.max(self.width, self.height);
+          self.shieldCanvas.width = animator.width;
+          self.shieldCanvas.height = animator.height;
+          // Use a consistent size for the shield canvas based on ship's largest dimension
+          // Multiply by a fixed factor to ensure it's large enough
+          // const shieldSize = Math.max(self.width, self.height);
 
-        const shieldSize = baseSize;
+          // Set both width and height to the same value to ensure it's a perfect square
+          // self.shieldCanvas.width = shieldSize;
+          // self.shieldCanvas.height = shieldSize;
 
-        // Set both width and height to the same value to ensure it's a perfect square
-        self.shieldCanvas.width = shieldSize;
-        self.shieldCanvas.height = shieldSize;
+          // Start animating in our off-screen canvas
+          animator.animateInCanvas(self.shieldCanvas);
 
-        // Start animating in our off-screen canvas
-        animator.animateInCanvas(self.shieldCanvas);
-
-        // Optionally stop animation when not visible to save CPU
-        // animator.stop() // We'll let it run continuously
-      });
+          // Optionally stop animation when not visible to save CPU
+          // animator.stop() // We'll let it run continuously
+        });
+      } catch (error) {
+        console.error("Failed to load shield animation:", error);
+        this.shieldImageLoaded = false;
+      }
+    } else {
+      console.warn("Gifler library not available, shield animation disabled");
+      this.shieldImageLoaded = false;
+    }
   }
 
   update(deltaTime, canvasWidth) {
@@ -165,15 +269,16 @@ class Player extends Entity {
     }
 
     // X-axis movement
-    const dx = this.targetX - this.x;
-    this.speed = this.baseSpeed;
-    this.x += dx * 0.15;
-    this.x = clamp(this.x, this.width / 2, canvasWidth - this.width / 2);
+    const dx = this.targetX - this.getCenterX();
+    // this.speed = this.baseSpeed;
+    this.x += dx * 0.15;// * this.speed;
+    this.x = clamp(this.x, 0, canvasWidth - this.width / 2.0);
+    // this.x = clamp(this.x, this.width / 2, canvasWidth - this.width / 2);
 
     // Y-axis movement (limited range)
     // Allow movement only within the defined range near the bottom of the screen
     const targetY = clamp(this.targetY, this.minY, this.maxY);
-    const dy = targetY - this.y;
+    const dy = targetY - this.getCenterY();
     // Use a smaller factor for Y movement to make it more subtle
     this.y += dy * 0.05;
     this.y = clamp(this.y, this.minY, this.maxY);
@@ -197,7 +302,7 @@ class Player extends Entity {
 
       // Calculate shield size based on player's largest dimension and configured size factor
       // Using a larger fixed value for the shield size instead of a multiplier of the ship size
-      const shieldDiameter = Math.max(this.width, this.height) * imageVisual.sizeFactor;
+      const shieldDiameter = Math.max(this.shieldCanvas.width, this.shieldCanvas.height) * imageVisual.sizeFactor;
       const aspectRatio = this.shieldCanvas.width / this.shieldCanvas.height;
 
       // Get exact center coordinates of the player
@@ -225,12 +330,12 @@ class Player extends Entity {
       // Add a subtle pulsing effect for shields with low capacity
       let opacity = imageVisual.opacity;
       if (this.shieldCapacity < this.shieldConfig.maxCapacity) {
-        const pulseEffect = Math.sin(performance.now() / 200) * 0.2 + 0.8;
-        opacity *= pulseEffect;
+
+        opacity *= (this.shieldCapacity / this.shieldConfig.maxCapacity);
       }
       ctx.globalAlpha = opacity;
-      ctx.translate(centerX, centerY);
-      ctx.rotate(this.shieldConfig.imageVisual.rotation * performance.now() / 100);
+      // ctx.translate(centerX, centerY);
+      // ctx.rotate(this.shieldConfig.imageVisual.rotation * performance.now() / 100);
 
       // Draw the animated shield from our canvas perfectly centered on the player
       // Use shieldDiameter for both width and height to maintain a perfect circle
@@ -240,10 +345,10 @@ class Player extends Entity {
         0,                // Source y
         this.shieldCanvas.width,  // Source width
         this.shieldCanvas.height, // Source height
-        drawX - centerX,               // Destination x
-        drawY - centerY,               // Destination y
-        // drawX,            // Destination x
-        // drawY,            // Destination y
+        // drawX - centerX,               // Destination x
+        // drawY - centerY,               // Destination y
+        drawX,            // Destination x
+        drawY,            // Destination y
         shieldSize * aspectRatio,   // Destination width - use the same for both to ensure a circle
         shieldSize    // Destination height - use the same for both to ensure a circle
       );
@@ -508,7 +613,7 @@ class Bullet extends Entity {
     target = null
   ) {
     // Added owner & optional target
-    super(x - config.width / 2, y, config.width, config.height, config.color);
+    super(x, y, config.width, config.height, config.color);
     this.speedX = speedX;
     this.speedY = speedY;
     this.damage = damage;
@@ -575,7 +680,7 @@ class Bullet extends Entity {
 class Rocket extends Entity {
   constructor(x, y) {
     const config = GAME_CONFIG.rocket;
-    super(x - config.width / 2, y, config.width, config.height, config.color);
+    super(x, y, config.width, config.height, config.color);
     this.speedY = config.speedY;
     this.damage = config.damage;
     this.explosionRadius = config.explosionRadius;
@@ -584,6 +689,7 @@ class Rocket extends Entity {
     this.turnSpeed = config.turnRate;
     this.speed = Math.abs(config.speedY);
     this.currentAngle = -Math.PI / 2; // Start pointing up
+    this.setRotation(this.currentAngle);
   }
 
   update(deltaTime, aliens) {
@@ -607,6 +713,7 @@ class Rocket extends Entity {
       // Clamp turn rate
       const turnAmount = clamp(angleDiff, -this.turnSpeed * speedFactor, this.turnSpeed * speedFactor);
       this.currentAngle += turnAmount;
+      this.setRotation(this.currentAngle);
     }
 
     // Update position based on current angle and speed
@@ -655,7 +762,7 @@ class Rocket extends Entity {
       const dx = this.getCenterX() - this.target.getCenterX();
       const dy = this.getCenterY() - this.target.getCenterY();
       const distanceSquared = dx * dx + dy * dy;
-      return distanceSquared <= this.explosionRadius * this.explosionRadius;
+      return distanceSquared <= (this.explosionRadius * this.explosionRadius) / 4.0;
     }
     return false;
   }
@@ -1397,5 +1504,8 @@ class ParticleManager {
     this.debris = [];
   }
 }
+
+// Export entity classes for ES module imports
+export { Entity, Player, Bullet, Rocket, Alien, Particle, Debris, Wingman, MiniShip, Item, ParticleManager };
 
 

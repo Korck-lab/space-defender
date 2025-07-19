@@ -151,6 +151,6 @@ class InputHandler {
     }
 }
 
-// Export class if using modules
-// export { InputHandler };
+// Export InputHandler for ES module imports
+export { InputHandler };
 

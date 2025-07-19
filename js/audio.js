@@ -322,3 +322,6 @@ class AudioManager {
         }
     }
 }
+
+// Export AudioManager for ES module imports
+export { AudioManager };
