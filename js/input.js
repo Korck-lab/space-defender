@@ -80,6 +80,24 @@ class InputHandler {
     }
 
     handleKeyDown(event) {
+        // Debug keys (work even when game is not running)
+        if (event.code === 'F1') {
+            event.preventDefault();
+            this.game.showPerformanceOverlay = !this.game.showPerformanceOverlay;
+            console.log('Performance overlay:', this.game.showPerformanceOverlay ? 'ON' : 'OFF');
+            return;
+        }
+        
+        if (event.code === 'F2') {
+            event.preventDefault();
+            this.game.showDebugInfo = !this.game.showDebugInfo;
+            if (this.game.collisionService) {
+                this.game.collisionService.setDebugMode(this.game.showDebugInfo);
+            }
+            console.log('Debug info:', this.game.showDebugInfo ? 'ON' : 'OFF');
+            return;
+        }
+
         if (!this.game.isRunning()) return; // Ignore if game not active
 
         // Pause Toggle

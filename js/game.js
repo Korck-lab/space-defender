@@ -7,7 +7,10 @@ import { ParticleManager, Player, Bullet, Rocket, Alien, Item, Debris, Wingman, 
 import { AudioManager } from './audio.js';
 import { initStarfield, loadShipImage, createPlayerBuffer, drawStarfield, drawAimCrosshair } from './drawing.js';
 import { InputHandler } from './input.js';
-import { checkCollisions as collisionService } from './services/CollisionService.js';
+import { CollisionService, checkCollisions as collisionService } from './services/CollisionService.js';
+import { PoolManager } from './services/EntityPool.js';
+import { ViewportCuller } from './services/ViewportCuller.js';
+import { PerformanceMonitor } from './services/PerformanceMonitor.js';
 import { clamp, getRandom, getRandomInt } from './utils.js';
 
 export class Game {
@@ -43,6 +46,19 @@ export class Game {
     this.particleManager = new ParticleManager();
     this.audioManager = new AudioManager();
     this.player = new Player(this.width, this.height);
+    
+    // Phase 2: Performance optimization services
+    this.collisionService = new CollisionService(64); // 64px cell size for spatial grid
+    this.poolManager = new PoolManager();
+    this.viewportCuller = new ViewportCuller(this.width, this.height);
+    this.performanceMonitor = new PerformanceMonitor();
+    
+    // Debug flags
+    this.showPerformanceOverlay = false;
+    this.showDebugInfo = false;
+    
+    // Initialize object pools
+    this.initObjectPools();
     this.bullets = [];
     this.rockets = [];
     this.aliens = [];
@@ -72,6 +88,23 @@ export class Game {
 
     // Create player buffer (will use image if loaded, or fallback to shape)
     createPlayerBuffer(GAME_CONFIG.player);
+  }
+
+  // Initialize object pools for performance optimization
+  initObjectPools() {
+    // TODO: Implement object pooling after adding proper init/reset methods to entities
+    // For now, commenting out to avoid constructor parameter issues
+    
+    // this.poolManager.createPool('bullets', Bullet, 100, 300);
+    // this.poolManager.createPool('particles', Object, 200, 500); // Generic particle pool
+    // this.poolManager.createPool('aliens', Alien, 50, 150);
+    // this.poolManager.createPool('items', Item, 20, 50);
+    // this.poolManager.createPool('debris', Debris, 50, 100);
+    
+    // Enable debug mode for collision service (can be toggled)
+    this.collisionService.setDebugMode(false);
+    
+    console.log('Object pooling temporarily disabled - using direct instantiation');
   }
 
   async start() {
@@ -252,6 +285,11 @@ export class Game {
       unlockBarContainer.style.right = '20px';
     }
 
+    // Update viewport culler with new dimensions
+    if (this.viewportCuller) {
+      this.viewportCuller.updateViewport(this.width, this.height);
+    }
+
     // Redraw if needed
     if (this.running) {
       this.draw();
@@ -292,10 +330,25 @@ export class Game {
   }
   gameLoop(timestamp) {
     if (!this.running || this.paused) return;
+    
+    // Update performance monitor
+    this.performanceMonitor.update(timestamp);
+    this.performanceMonitor.startBenchmark('gameLoop');
+    
     const deltaTime = Math.min(timestamp - this.lastTimestamp, 50);
     this.lastTimestamp = timestamp;
+    
+    // Benchmark game update
+    this.performanceMonitor.startBenchmark('update');
     this.update(deltaTime);
+    this.performanceMonitor.endBenchmark('update');
+    
+    // Benchmark rendering
+    this.performanceMonitor.startBenchmark('render');
     this.draw();
+    this.performanceMonitor.endBenchmark('render');
+    
+    this.performanceMonitor.endBenchmark('gameLoop');
     this.requestLoop();
   }
 
@@ -644,7 +697,8 @@ export class Game {
   }
 
   checkCollisions() {
-    collisionService(this);
+    // Use the optimized collision service with spatial partitioning
+    this.collisionService.checkCollisions(this);
   }
 
   handleAlienDestroyed(alien, index, source) {
@@ -1026,14 +1080,30 @@ export class Game {
 
   draw() {
     drawStarfield(this.ctx);
-    this.drawEntities(this.aliens);
-    this.drawEntities(this.rockets);
-    this.drawEntities(this.items);
-    this.drawEntities(this.wingmen);
-    this.drawEntities(this.miniShips);
+    
+    // Use viewport culling for performance optimization
+    this.drawEntitiesOptimized(this.aliens);
+    this.drawEntitiesOptimized(this.rockets);
+    this.drawEntitiesOptimized(this.items);
+    this.drawEntitiesOptimized(this.wingmen);
+    this.drawEntitiesOptimized(this.miniShips);
+    
+    // Player is always visible, so draw directly
     this.player.draw(this.ctx);
-    this.drawEntities(this.bullets);
+    
+    this.drawEntitiesOptimized(this.bullets);
     this.particleManager.draw(this.ctx);
+
+    // Draw performance debug information if enabled
+    if (this.showDebugInfo) {
+      this.collisionService.debugDraw(this.ctx, this.width, this.height);
+      this.viewportCuller.debugDraw(this.ctx);
+    }
+
+    // Draw performance overlay if enabled
+    if (this.showPerformanceOverlay) {
+      this.performanceMonitor.drawOverlay(this.ctx);
+    }
 
     // Draw the aim crosshair if the game is running and not paused
     if (this.running && !this.paused && this.inputHandler) {
@@ -1047,29 +1117,47 @@ export class Game {
       if (entity.active) {
         entity.draw(this.ctx);
         // Particle hooks for trails
-        if (entity instanceof Bullet && entity.owner === "player") {
-          this.particleManager.createBulletTrail(
-            entity.getCenterX(),
-            entity.y + entity.height,
-            entity.color
-          );
-        } else if (entity instanceof Bullet && entity.owner === "miniShip") {
-          // Trail for miniship rockets
-          this.particleManager.createMiniRocketTrail(
-            entity.getCenterX(),
-            entity.getCenterY(),
-            entity.config.trailColor || entity.color
-          );
-        } else if (entity instanceof Rocket) {
-          const bottom = entity.getRotatedCenterBottom()
-          this.particleManager.createRocketFlame(
-            bottom.x,
-            bottom.y,
-            // entity.getCenterX(),
-            // entity.y + entity.height
-          );
-        }
+        this.createEntityTrails(entity);
       }
+    }
+  }
+
+  // Optimized entity drawing with viewport culling
+  drawEntitiesOptimized(entities) {
+    const visibleEntities = this.viewportCuller.getVisibleEntities(entities);
+    
+    for (const entity of visibleEntities) {
+      if (entity.active) {
+        entity.draw(this.ctx);
+        // Particle hooks for trails
+        this.createEntityTrails(entity);
+      }
+    }
+  }
+
+  // Extract particle trail creation logic
+  createEntityTrails(entity) {
+    if (entity instanceof Bullet && entity.owner === "player") {
+      this.particleManager.createBulletTrail(
+        entity.getCenterX(),
+        entity.y + entity.height,
+        entity.color
+      );
+    } else if (entity instanceof Bullet && entity.owner === "miniShip") {
+      // Trail for miniship rockets
+      this.particleManager.createMiniRocketTrail(
+        entity.getCenterX(),
+        entity.getCenterY(),
+        entity.config.trailColor || entity.color
+      );
+    } else if (entity instanceof Rocket) {
+      const bottom = entity.getRotatedCenterBottom()
+      this.particleManager.createRocketFlame(
+        bottom.x,
+        bottom.y,
+        // entity.getCenterX(),
+        // entity.y + entity.height
+      );
     }
   }
   isRunning() {

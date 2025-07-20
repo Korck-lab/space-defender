@@ -1484,20 +1484,9 @@ class ParticleManager {
     for (const deb of this.debris) deb.draw(ctx);
   }
   checkDebrisCollisions(aliens, game) {
-    for (let i = this.debris.length - 1; i >= 0; i--) {
-      const piece = this.debris[i];
-      if (!piece.active) continue;
-      for (let j = aliens.length - 1; j >= 0; j--) {
-        const alien = aliens[j];
-        if (!alien.active) continue;
-        if (checkCollision(piece, alien)) {
-          const destroyed = alien.takeDamage(piece.damage);
-          piece.active = false;
-          if (destroyed) game.handleAlienDestroyed(alien, j, "debris");
-          break;
-        }
-      }
-    }
+    // This method is now handled by the CollisionService for optimization
+    // Left as stub for backward compatibility
+    // The actual collision detection is done in CollisionService.checkDebrisCollisions
   }
   reset() {
     this.particles = [];
